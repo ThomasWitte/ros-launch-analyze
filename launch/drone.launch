@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="ns" default="/drone"/>
+  <arg name="x" default="0"/>
+  <arg name="y" default="0"/>
+  <arg name="z" default="0"/>
+  <arg name="gesture_topic" default="gesture"/>
+  <arg name="script_path"/>
+  <arg name="trajectory_assignment"/>
+  <arg name="trajectory_request"/>
+  <arg name="qr_map" default="$(find sim_photo)/map/test.txt"/>
+  <arg name="delay" default="0.2"/>
+
+  <group ns="$(arg ns)">
+
+    <!-- trajectory_client_node -->
+    <node name="trajectory_client_node"
+          pkg="trajectory_server"
+          type="trajectory_client_node"
+          output="screen"
+          required="true">
+      <param name="x"
+             type="double"
+             value="$(arg x)" />
+      <param name="y"
+             type="double"
+             value="$(arg y)" />
+      <param name="name"
+             type="string"
+             value="$(eval arg('ns').split('/')[-1])" />
+      <param name="trajectory_assignment_input"
+             type="string"
+             value="$(arg trajectory_assignment)" />
+      <param name="trajectory_request_output"
+             type="string"
+             value="$(arg trajectory_request)" />
+    </node>
+
+    <!-- quad_node -->
+    <node name="quad_node"
+          pkg="trajectory_server"
+          type="quad_node"
+          output="screen"
+          required="true">
+      <param name="name"
+             type="string"
+             value="$(eval arg('ns').split('/')[-1])" />
+      <param name="delay"
+             type="double"
+             value="$(arg delay)" />
+      <param name="x"
+             type="double"
+             value="$(arg x)" />
+      <param name="y"
+             type="double"
+             value="$(arg y)" />
+      <param name="z"
+             type="double"
+             value="$(arg z)" />
+    </node>
+    
+    <!-- quad_script_node -->
+    <node name="quad_script_node"
+          pkg="quad_script"
+          type="quad_script_node"
+          output="screen"
+          required="true">
+      <param name="use_mission_server"
+             type="bool"
+             value="false" />
+      <param name="gesture_input"
+             type="string"
+             value="$(arg gesture_topic)"/>
+      <param name="script_path"
+             type="string"
+             value="$(arg script_path)" />
+      <param name="photo_service"
+             type="string"
+             value="$(arg ns)/photo_service"/>
+    </node>
+
+    <!-- sim_photo_node -->
+    <node name="sim_photo_node"
+          pkg="sim_photo"
+          type="sim_photo_node"
+          output="screen"
+          required="true">
+      <param name="photo_service"
+             type="string"
+             value="$(arg ns)/photo_service"/>
+      <param name="use_simulation"
+             type="bool"
+             value="true"/>
+      <param name="sim_file"
+             type="string"
+             value="$(arg qr_map)"/>
+      <param name="quad_name"
+             type="string"
+             value="$(eval arg('ns').split('/')[-1])"/>
+    </node> 
+
+  </group>
+</launch>

@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="ns" default="/start_collision_test2"/>
+  <arg name="trajectory_assignment" default="$(arg ns)/trajectory_assignment"/>
+  <arg name="trajectory_request" default="$(arg ns)/trajectory_request"/>
+  
+  <group ns="$(arg ns)">
+    <!-- trajectory_server_node -->
+    <node name="trajectory_server_node"
+          pkg="trajectory_server"
+          type="trajectory_server_node"
+          output="screen"
+          required="true">
+      <param name="trajectory_request_input"
+             type="string"
+             value="$(arg trajectory_request)"/>
+      <param name="trajectory_assignment_output"
+             type="string"
+             value="$(arg trajectory_assignment)"/>
+      <!--
+      <topics>
+        <topic name="/test"
+               type="String"
+               class="sub"/>
+        <topic name="/foo"
+               type="Int64"
+               class="pub"/>
+      </topics>
+      -->
+    </node>
+
+    <!-- rviz -->
+    <node name="rviz"
+          pkg="rviz"
+          type="rviz"
+          args="-d $(find ros_launch_lint)/config/collision2.rviz"
+          required="true"/>
+
+    <!-- drone1 -->
+    <include file="$(find ros_launch_lint)/launch/drone.launch" >
+      <arg name="x" value="0" />
+      <arg name="y" value="0" />
+      <arg name="ns" value="$(arg ns)/drone1" />
+      <arg name="script_path" value="$(find ros_launch_lint)/script/c1.lua" />
+      <arg name="trajectory_request" value="$(arg trajectory_request)"/>
+      <arg name="trajectory_assignment" value="$(arg trajectory_assignment)"/>
+    </include>
+
+    <!-- drone2 -->
+    <include file="$(find ros_launch_lint)/launch/drone.launch" >
+      <arg name="x" value="0" />
+      <arg name="y" value="-1" />
+      <arg name="ns" value="$(arg ns)/drone2" />
+      <arg name="script_path" value="$(find ros_launch_lint)/script/c2.lua" />
+      <arg name="trajectory_request" value="$(arg trajectory_request)"/>
+      <arg name="trajectory_assignment" value="$(arg trajectory_assignment)"/>
+    </include>
+
+    <!-- drone3 -->
+    <include file="$(find ros_launch_lint)/launch/drone.launch" >
+      <arg name="x" value="1" />
+      <arg name="y" value="-0.5" />
+      <arg name="ns" value="$(arg ns)/drone3" />
+      <arg name="script_path" value="$(find ros_launch_lint)/script/c3.lua" />
+      <arg name="trajectory_request" value="$(arg trajectory_request)"/>
+      <arg name="trajectory_assignment" value="$(arg trajectory_assignment)"/>
+    </include>
+
+    <!-- drone4 -->
+    <include file="$(find ros_launch_lint)/launch/drone.launch" >
+      <arg name="x" value="2" />
+      <arg name="y" value="0.5" />
+      <arg name="ns" value="$(arg ns)/drone4" />
+      <arg name="script_path" value="$(find ros_launch_lint)/script/c4.lua" />
+      <arg name="trajectory_request" value="$(arg trajectory_request)"/>
+      <arg name="trajectory_assignment" value="$(arg trajectory_assignment)"/>
+    </include>
+
+    <!-- drone5 -->
+    <include file="$(find ros_launch_lint)/launch/drone.launch" >
+      <arg name="x" value="3" />
+      <arg name="y" value="-0.5" />
+      <arg name="ns" value="$(arg ns)/drone5" />
+      <arg name="script_path" value="$(find ros_launch_lint)/script/c5.lua" />
+      <arg name="trajectory_request" value="$(arg trajectory_request)"/>
+      <arg name="trajectory_assignment" value="$(arg trajectory_assignment)"/>
+    </include>
+    
+    <!-- drone6 -->
+    <include file="$(find ros_launch_lint)/launch/drone.launch" >
+      <arg name="x" value="4" />
+      <arg name="y" value="0.5" />
+      <arg name="ns" value="$(arg ns)/drone6" />
+      <arg name="script_path" value="$(find ros_launch_lint)/script/c6.lua" />
+      <arg name="trajectory_request" value="$(arg trajectory_request)"/>
+      <arg name="trajectory_assignment" value="$(arg trajectory_assignment)"/>
+    </include>
+  </group>
+</launch>
