@@ -2,6 +2,7 @@
 
 #include <dlfcn.h>
 #include <ros/ros.h>
+#include <ros/topic_manager.h>
 #include <iostream>
 
 template<typename memberT>
@@ -47,5 +48,21 @@ Subscriber NodeHandle::subscribe(SubscribeOptions& opts) {
 
     return (this->*orig_subscribe)(opts);
 }
+
+/*bool TopicManager::advertise(const AdvertiseOptions& ops, const SubscriberCallbacksPtr& callbacks) {
+    typedef bool (TopicManager::*advertise_t)(const AdvertiseOptions&, const SubscriberCallbacksPtr&);
+
+    static advertise_t orig_advertise = nullptr;
+    if (!orig_advertise) {
+        u_ptm_cast<advertise_t> tmp;
+        tmp.pmember = nullptr;
+        tmp.vs.pvoid = dlsym(RTLD_NEXT, "_ZN3ros12TopicManager9advertiseERKNS_16AdvertiseOptionsERKN5boost10shared_ptrINS_19SubscriberCallbacksEEE");
+        orig_advertise = tmp.pmember;
+    }
+
+    std::cout << "Yay! " << ops.topic << " " << ops.datatype << std::endl;
+
+    return (this->*orig_advertise)(ops, callbacks);
+}*/
 
 }

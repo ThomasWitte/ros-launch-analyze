@@ -65,14 +65,38 @@ private:
                     break;
                 }
             } else if (sm[1] == "eval") {
-                ROS_WARN_STREAM("unresolved eval " << sm[0]);
-                result = sm.prefix().str() + "unresolved_eval" + sm.suffix().str();
+                result = sm.prefix().str() + eval_python(sm[2]) + sm.suffix().str();
             } else {
                 ROS_ERROR_STREAM("unknown roslaunch substitution " << sm[1]);
                 break;
             }
         }
 
+        return result;
+    }
+
+    std::string eval_python(std::string expression) {
+        std::string str = "arg=eval;print(" + expression + ")";
+        for (const auto& arg : arg_map) {
+            str = arg.first + "='" + arg.second + "';" + str;
+        }
+
+        procxx::process eval {"python", "-c", str};
+
+        eval.exec();
+        eval.wait();
+
+        if (eval.code() != 0) {
+            ROS_WARN_STREAM("Error evaluating " << str);
+            std::string err;
+            while (std::getline(eval.error(), err)) {
+                ROS_WARN_STREAM(err);
+            }
+            return "unresolved_eval";
+        }
+
+        std::string result;
+        eval.output() >> result;
         return result;
     }
 };
@@ -194,6 +218,40 @@ public:
         nodes.insert(nodes.begin(), NodeDesc {"/", "", "", root_xml, std::vector<param_t>(), "", std::vector<Port>()});
     }
 
+    virtual bool Visit (const XMLComment &elt) override {
+        // assert that parent is a node tag
+        if (elt.Parent() && elt.Parent()->ToElement() &&
+            std::string(elt.Parent()->ToElement()->Name()) == "node") {
+
+            // try to parse the comment as xml
+            std::string comment = elt.Value();
+            XMLDocument comment_doc;
+            if (comment_doc.Parse(comment.c_str(), comment.size()) == XML_NO_ERROR) {
+                const XMLNode* topic_node = comment_doc.FirstChild();
+                if (!topic_node || !topic_node->ToElement() || std::string(topic_node->ToElement()->Name()) != "topics") {
+                    return true;
+                }
+
+                for (const XMLNode* node = topic_node->FirstChild(); node != nullptr; node = node->NextSibling()) {
+                    const XMLElement* elt = node->ToElement();
+
+                    if (elt) {
+                        std::string cls = elt->Attribute("class");
+                        Port p {elt->Attribute("name"),
+                                elt->Attribute("type"),
+                                -1,
+                                (cls == "pub" ? Port::PUBLISHER
+                                              : (cls == "sub" ? Port::SUBSCRIBER
+                                                              : Port::NONE))};
+                        node_ports.push_back(p);
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     virtual bool VisitExit (const XMLElement &elt) override {
         if (std::string(elt.Name()) == "group" ||
             std::string(elt.Name()) == "node" ||
@@ -216,8 +274,9 @@ public:
                                              file_stack.top(),
                                              private_params,
                                              elt.Attribute("args") ? elt.Attribute("args") : "",
-                                             std::vector<Port>()});
+                                             node_ports});
             private_params.clear();
+            node_ports.clear();
         }
 
         return true;
@@ -363,6 +422,7 @@ private:
     tree_t::iterator it;
 
     std::vector<param_t> private_params;
+    std::vector<Port> node_ports;
 };
 
 std::ostream& operator<< (std::ostream& out, const NodeListVisitor::NodeDesc& desc) {

@@ -157,6 +157,11 @@ target_link_libraries(${PROJECT_NAME}_topic
   ${catkin_LIBRARIES}
 )
 
+target_link_libraries(roscpp_preload
+  ${catkin_LIBRARIES}
+  boost_system
+)
+
 #############
 ## Install ##
 #############
