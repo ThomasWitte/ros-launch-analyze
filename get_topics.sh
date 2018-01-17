@@ -70,9 +70,11 @@ function path {
 #    rosrun ros_launch_lint topic_inspection "$1"
 #fi
 
+echo "LD_LIBRARY_PATH=" $LD_LIBRARY_PATH 1>&2
+
 # execute the node and print topics
 ROSCPP_PRELOAD=$(locate libroscpp_preload.so)
-(timeout -s 'TERM' 2 roscore &> /dev/null )&
+(timeout -s 'TERM' 4 roscore &> /dev/null )&
 
 if [ -n "`file -b "$1" | grep Python`" ]
 then
@@ -84,12 +86,12 @@ then
         i="${i//\\/\\\\}"
         C="$C \"${i//\"/\\\"}\""
     done
-    timeout 1 bash -c "rosrun ros_launch_lint rospy_preload.py $exepath 2>&1" | grep '<<' | sort | uniq
+    timeout 3 bash -c "rosrun ros_launch_lint rospy_preload.py $exepath 2>&1" | tee >(grep -v '<<' 1>&2) | grep '<<' | sort | uniq
 else
     C=''
     for i in "$@"; do 
         i="${i//\\/\\\\}"
         C="$C \"${i//\"/\\\"}\""
     done
-    timeout 1 bash -c "LD_PRELOAD=$ROSCPP_PRELOAD rosrun $C 2>&1" | grep '<<' | sort | uniq
+    timeout 3 bash -c "LD_PRELOAD=$ROSCPP_PRELOAD rosrun $C 2>&1" | tee >(grep -v '<<' 1>&2)  | grep '<<' | sort | uniq
 fi

@@ -27,7 +27,11 @@ Publisher NodeHandle::advertise(AdvertiseOptions& opts) {
         orig_advertise = tmp.pmember;
     }
 
-    std::cout << "<<advertise>> " << opts.topic << " " << opts.datatype << std::endl;
+    std::string ns = getUnresolvedNamespace();
+    if (!ns.empty())
+        ns.append("/");
+
+    std::cout << "<<advertise>> " << (ns + opts.topic) << " " << opts.datatype << std::endl;
 
     return (this->*orig_advertise)(opts);
 }
@@ -44,7 +48,11 @@ Subscriber NodeHandle::subscribe(SubscribeOptions& opts) {
         orig_subscribe = tmp.pmember;
     }
 
-    std::cout << "<<subscribe>> " << opts.topic << " " << opts.datatype << std::endl;
+    std::string ns = getUnresolvedNamespace();
+    if (!ns.empty())
+        ns.append("/");
+
+    std::cout << "<<subscribe>> " << (ns + opts.topic) << " " << opts.datatype << std::endl;
 
     return (this->*orig_subscribe)(opts);
 }

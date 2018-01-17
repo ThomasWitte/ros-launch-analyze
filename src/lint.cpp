@@ -216,6 +216,7 @@ public:
         nss.push("/");
         file_stack.push(root_xml);
         nodes.insert(nodes.begin(), NodeDesc {"/", "", "", root_xml, std::vector<param_t>(), "", std::vector<Port>()});
+        it = create_path(nss.top());
     }
 
     virtual bool Visit (const XMLComment &elt) override {
@@ -359,11 +360,15 @@ public:
 
             ROS_INFO_STREAM("querying topics for " << it->name);
 
-            procxx::process get_topics {ros::package::getPath("ros_launch_lint") + "/get_topics.sh",
+            procxx::process get_topics {"firejail",
+                                        "--env=LD_LIBRARY_PATH=/home/thomas/catkin_ws/devel/lib:/home/thomas/ros_ws/devel/lib:/opt/ros/kinetic/lib:/home/thomas/local/lib",
+                                        "--overlay",
+                                        "--quiet",
+                                        ros::package::getPath("ros_launch_lint") + "/get_topics.sh",
                                         it->package,
                                         it->type};
 
-            std::cout << "cmd: " << ros::package::getPath("ros_launch_lint") << "/get_topics.sh"
+            std::cout << "cmd: firejail --env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH --overlay --quiet " << ros::package::getPath("ros_launch_lint") << "/get_topics.sh"
                       << " " << it->package << " " << it->type;
 
             // split arguments (TODO: don't split quoted strings)
@@ -384,9 +389,6 @@ public:
 
             get_topics.exec();
 
-            /*std::string line;
-            while (std::getline(get_topics.output(), line))
-                std::cout << line << std::endl;*/
             std::string dir, name, type;
             while (get_topics.output() >> dir >> name >> type) {
                 Port p;
@@ -397,6 +399,10 @@ public:
                                                                            : Port::NONE));
                 it->ports.push_back(p);
             }
+
+            std::string line;
+            while (std::getline(get_topics.error(), line))
+                std::cout << line << std::endl;
 
             ROS_INFO_STREAM("...found " << it->ports.size() << " topics");
         }
@@ -452,7 +458,14 @@ void print_node_tree(const NodeListVisitor::tree_t& nodes) {
 
         std::string str = it->name;
         if (!it->type.empty()) {
-            std::string padding(32 - it->name.size() - 2*nodes.depth(it), ' ');
+            int padding_w = 32 - it->name.size() - 2*nodes.depth(it);
+            if (padding_w < 0) {
+                str.resize(std::max(str.size() + padding_w - 3, 0ul));
+                str += "...";
+                padding_w = 0;
+            }
+
+            std::string padding(padding_w, ' ');
             str += padding + "[" + it->package + "/" + it->type + "]";
         }
 
