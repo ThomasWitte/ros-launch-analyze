@@ -8,3 +8,5 @@ package.xml
 include/ros_launch_lint/tree.h
 src/topic_inspection.cpp
 src/roscpp_preload.cpp
+src/sandboxed_execution.cpp
+include/ros_launch_lint/sandboxed_execution.h

@@ -2,3 +2,4 @@
 .
 src
 include
+include/ros_launch_lint

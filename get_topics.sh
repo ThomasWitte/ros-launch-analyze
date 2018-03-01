@@ -8,10 +8,10 @@ function path {
       IFS=$'\n'
       catkin_package_libexec_dirs=(`catkin_find --without-underlays --libexec --share "$package" 2> /dev/null`)
       unset IFS
-      debug "Looking in catkin libexec dirs: $catkin_package_libexec_dirs"
+      #debug "Looking in catkin libexec dirs: $catkin_package_libexec_dirs"
     fi
     pkgdir=`rospack find "$package"`
-    debug "Looking in rospack dir: $pkgdir"
+    #debug "Looking in rospack dir: $pkgdir"
     if [[ ${#catkin_package_libexec_dirs[@]} -eq 0 && -z $pkgdir ]]; then
       exit 2
     fi
@@ -24,7 +24,7 @@ function path {
       else
         _perm="/111"
       fi
-      debug "Searching for $node with permissions $_perm"
+      #debug "Searching for $node with permissions $_perm"
       exepathlist="`find -L "${catkin_package_libexec_dirs[@]}" "$pkgdir" -name "$node" -type f  -perm "$_perm" ! -regex ".*$pkgdir\/build\/.*" | uniq`"
       IFS=$'\n'
       exepathlist=($exepathlist)
@@ -53,7 +53,7 @@ function path {
       fi
     else
       absname="$pkgdir/$node"
-      debug "Path given. Looing for $absname"
+      #debug "Path given. Looing for $absname"
       if [[ ! -f $absname || ! -x $absname ]]; then
         echo "[rosrun] Couldn't find executable named $absname"
         exit 3
@@ -74,24 +74,35 @@ echo "LD_LIBRARY_PATH=" $LD_LIBRARY_PATH 1>&2
 
 # execute the node and print topics
 ROSCPP_PRELOAD=$(locate libroscpp_preload.so)
-(timeout -s 'TERM' 4 roscore &> /dev/null )&
+(timeout -s 'TERM' 7 roscore &> /dev/null )&
 
-if [ -n "`file -b "$1" | grep Python`" ]
+sleep 3
+(timeout -s 'TERM' 4 rostopic pub -r 10 /clock rosgraph_msgs/Clock 5 )&
+
+while [ "$1" != "--" ]; do
+    >&2 echo rosparam set "$1" "$2"
+    rosparam set "$1" "$2"
+    shift 2
+done
+shift
+
+path $1 $2
+    
+if [ -n "`file -b "$exepath" | grep Python`" ]
 then
-    path $1 $2
-    shift
-    shift
+    shift 2
+    
     C=''
     for i in "$@"; do 
         i="${i//\\/\\\\}"
         C="$C \"${i//\"/\\\"}\""
     done
-    timeout 3 bash -c "rosrun ros_launch_lint rospy_preload.py $exepath 2>&1" | tee >(grep -v '<<' 1>&2) | grep '<<' | sort | uniq
+    timeout 3 bash -c "rosrun ros_launch_lint rospy_preload.py $exepath $C"
 else
     C=''
     for i in "$@"; do 
         i="${i//\\/\\\\}"
         C="$C \"${i//\"/\\\"}\""
     done
-    timeout 3 bash -c "LD_PRELOAD=$ROSCPP_PRELOAD rosrun $C 2>&1" | tee >(grep -v '<<' 1>&2)  | grep '<<' | sort | uniq
+    timeout 3 bash -c "LD_PRELOAD=$ROSCPP_PRELOAD rosrun $C"
 fi

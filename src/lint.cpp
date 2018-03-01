@@ -1,5 +1,6 @@
 #include "ros_launch_lint/tree.h"
-#include "procxx/include/process.h"
+#include "ros_launch_lint/sandboxed_execution.h"
+#include <procxx/include/process.h>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -185,31 +186,6 @@ void include_all(XMLDocument& result, const XMLDocument& doc) {
 class NodeListVisitor : public XMLVisitor {
 public:
 
-    using param_t = std::pair<std::string, std::string>;
-
-    struct Port {
-        std::string topic;
-        std::string data_type;
-        int64_t position;
-        enum {NONE=0, PUBLISHER, SUBSCRIBER} type;
-    };
-
-    struct NodeDesc {
-        std::string name;
-        std::string type;
-        std::string package;
-        std::string launch_file;
-
-        // params
-        std::vector<param_t> params;
-        std::string args;
-
-        // topics
-        std::vector<Port> ports;
-
-        friend std::ostream& operator<< (std::ostream& out, const NodeDesc& desc);
-    };
-
     using tree_t = tree<NodeDesc>;
 
     NodeListVisitor(const std::string& root_xml) {
@@ -229,7 +205,7 @@ public:
             XMLDocument comment_doc;
             if (comment_doc.Parse(comment.c_str(), comment.size()) == XML_NO_ERROR) {
                 const XMLNode* topic_node = comment_doc.FirstChild();
-                if (!topic_node || !topic_node->ToElement() || std::string(topic_node->ToElement()->Name()) != "topics") {
+                if (!topic_node || !topic_node->ToElement() || std::string(topic_node->ToElement()->Name()) != "topics" || std::string(topic_node->ToElement()->Name()) != "services") {
                     return true;
                 }
 
@@ -242,8 +218,10 @@ public:
                                 elt->Attribute("type"),
                                 -1,
                                 (cls == "pub" ? Port::PUBLISHER
-                                              : (cls == "sub" ? Port::SUBSCRIBER
-                                                              : Port::NONE))};
+                              : (cls == "sub" ? Port::SUBSCRIBER
+                              : (cls == "adv" ? Port::SERVICE_ADVERTISE
+                              : (cls == "call" ? Port::SERVICE_CLIENT
+                              : Port::NONE))))};
                         node_ports.push_back(p);
                     }
                 }
@@ -278,6 +256,13 @@ public:
                                              node_ports});
             private_params.clear();
             node_ports.clear();
+        } else if (std::string(elt.Name()) == "param"
+                && elt.Parent() && std::string(elt.Parent()->ToElement()->Name()) != "node") {
+
+            // we are not inside a node -> the param is global
+            for (const auto& p : private_params)
+                global_params.push_back(p);
+            private_params.clear();
         }
 
         return true;
@@ -353,6 +338,8 @@ public:
     }
 
     void query_topics() {
+        NodeAnalyzer na;
+
         for (auto it = nodes.begin(); it != nodes.end(); ++it) {
             // continue, if not a node
             if (it->type.empty())
@@ -360,57 +347,21 @@ public:
 
             ROS_INFO_STREAM("querying topics for " << it->name);
 
-            procxx::process get_topics {"firejail",
-                                        "--env=LD_LIBRARY_PATH=/home/thomas/catkin_ws/devel/lib:/home/thomas/ros_ws/devel/lib:/opt/ros/kinetic/lib:/home/thomas/local/lib",
-                                        "--overlay",
-                                        "--quiet",
-                                        ros::package::getPath("ros_launch_lint") + "/get_topics.sh",
-                                        it->package,
-                                        it->type};
+            auto ports = na.analyze_node(*it, global_params);
 
-            std::cout << "cmd: firejail --env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH --overlay --quiet " << ros::package::getPath("ros_launch_lint") << "/get_topics.sh"
-                      << " " << it->package << " " << it->type;
+            for (auto& p : ports)
+                p.name = get_absolute_path(it.node, p.name);
 
-            // split arguments (TODO: don't split quoted strings)
-            if (!it->args.empty()) {
-                std::stringstream ss {it->args};
-                std::string s;
-                while (ss >> s) {
-                    get_topics.add_argument(s);
-                    std::cout << " " << s;
-                }
-            }
+            it->ports = ports;
 
-            for (const auto param : it->params) {
-                get_topics.add_argument(std::string("_") + param.first + ":=" + param.second);
-                std::cout << " _" << param.first << ":=" << param.second;
-            }
-            std::cout << std::endl;
-
-            get_topics.exec();
-
-            std::string dir, name, type;
-            while (get_topics.output() >> dir >> name >> type) {
-                Port p;
-                p.topic = get_absolute_path(it.node, name);
-                p.data_type = type;
-                p.type = (dir == "<<advertise>>" ? Port::PUBLISHER
-                                                 : (dir == "<<subscribe>>" ? Port::SUBSCRIBER
-                                                                           : Port::NONE));
-                it->ports.push_back(p);
-            }
-
-            std::string line;
-            while (std::getline(get_topics.error(), line))
-                std::cout << line << std::endl;
-
-            ROS_INFO_STREAM("...found " << it->ports.size() << " topics");
+            ROS_INFO_STREAM("...found " << it->ports.size() << " topics/services");
+            ROS_INFO_STREAM(*it);
         }
     }
 
     template <typename T>
     std::string get_absolute_path(T* node, std::string path) {
-        while (path[0] != '/') {
+        while (path.empty() || path[0] != '/') {
             node = node->parent;
             path = node->data.name + path;
         }
@@ -428,10 +379,11 @@ private:
     tree_t::iterator it;
 
     std::vector<param_t> private_params;
+    std::vector<param_t> global_params;
     std::vector<Port> node_ports;
 };
 
-std::ostream& operator<< (std::ostream& out, const NodeListVisitor::NodeDesc& desc) {
+std::ostream& operator<< (std::ostream& out, const NodeDesc& desc) {
     out << desc.name << std::endl;
 
     for(const auto& p : desc.params)
@@ -439,8 +391,29 @@ std::ostream& operator<< (std::ostream& out, const NodeListVisitor::NodeDesc& de
 
     out << std::endl;
 
-    for(const auto& p : desc.ports)
-        out << "  " << p.topic << " " << p.data_type << " " << p.type << std::endl;
+    for(const auto& p : desc.ports) {
+        out << "  " << p.name << " [" << p.data_type << "] class:";
+
+        switch(p.type) {
+        case Port::NONE:
+            out << "none";
+            break;
+        case Port::PUBLISHER:
+            out << "pub";
+            break;
+        case Port::SUBSCRIBER:
+            out << "sub";
+            break;
+        case Port::SERVICE_ADVERTISE:
+            out << "adv";
+            break;
+        case Port::SERVICE_CLIENT:
+            out << "call";
+            break;
+        }
+
+        out << std::endl;
+    }
 
     return out;
 }
@@ -482,27 +455,26 @@ void print_node_tree(const NodeListVisitor::tree_t& nodes) {
 }
 
 void print_topics(const NodeListVisitor::tree_t& nodes) {
-    using Port = NodeListVisitor::Port;
     //       topic                   publisher                 subscriber                type
     std::map<std::string, std::tuple<std::vector<std::string>, std::vector<std::string>, std::string>> topics;
 
     for (auto it = nodes.begin(); it != nodes.end(); ++it) {
         for (const auto& p : it->ports) {
-            if (std::get<2>(topics[p.topic]) != p.data_type && p.data_type != "*") {
-                if (std::get<2>(topics[p.topic]) != "" &&
-                    std::get<2>(topics[p.topic]) != "*") {
+            if (std::get<2>(topics[p.name]) != p.data_type && p.data_type != "*") {
+                if (std::get<2>(topics[p.name]) != "" &&
+                    std::get<2>(topics[p.name]) != "*") {
 
-                    std::cout << "Incompatible types at topic " << p.topic << ": "
-                              << std::get<2>(topics[p.topic]) << "!=" << p.data_type << std::endl;
+                    std::cout << "Incompatible types at topic/service " << p.name << ": "
+                              << std::get<2>(topics[p.name]) << "!=" << p.data_type << std::endl;
                 } else {
-                    std::get<2>(topics[p.topic]) = p.data_type;
+                    std::get<2>(topics[p.name]) = p.data_type;
                 }
             }
 
-            if (p.type == Port::PUBLISHER)
-                std::get<0>(topics[p.topic]).push_back(it->name);
-            if (p.type == Port::SUBSCRIBER)
-                std::get<1>(topics[p.topic]).push_back(it->name);
+            if (p.type == Port::PUBLISHER || p.type == Port::SERVICE_ADVERTISE)
+                std::get<0>(topics[p.name]).push_back(it->name);
+            if (p.type == Port::SUBSCRIBER || p.type == Port::SERVICE_CLIENT)
+                std::get<1>(topics[p.name]).push_back(it->name);
         }
     }
 
