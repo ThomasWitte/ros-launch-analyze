@@ -4,24 +4,29 @@ import aspectlib
 import rospy
 import sys
 
+from websocket import create_connection
+
+print('open ws')
+ws = create_connection("ws://localhost:34005/")
+
 @aspectlib.Aspect
 def wrap_publisher(self, topic, datatype, subscriber_listener=None, tcp_nodelay=False, latch=False, headers=None, queue_size=None):
-    print('<<advertise>> ' + rospy.names.resolve_name(topic) + ' ' + datatype.__module__.split('.')[0] + '/' + datatype.__name__)
+    ws.send('<<advertise>> ' + rospy.names.resolve_name(topic) + ' ' + datatype.__module__.split('.')[0] + '/' + datatype.__name__)
     yield
 
 @aspectlib.Aspect
 def wrap_subscriber(self, topic, datatype, callback=None, callback_args=None, queue_size=None, buff_size=65536, tcp_nodelay=False):
-    print('<<subscribe>> ' + rospy.names.resolve_name(topic) + ' ' + datatype.__module__.split('.')[0] + '/' + datatype.__name__)
+    ws.send('<<subscribe>> ' + rospy.names.resolve_name(topic) + ' ' + datatype.__module__.split('.')[0] + '/' + datatype.__name__)
     yield
 
 @aspectlib.Aspect
 def wrap_service_advertise(self, name, datatype, handler, buff_size=65536):
-    print('<<advertiseService>> ' + rospy.names.resolve_name(name) + ' ' + datatype.__module__.split('.')[0] + '/' + datatype.__name__)
+    ws.send('<<advertiseService>> ' + rospy.names.resolve_name(name) + ' ' + datatype.__module__.split('.')[0] + '/' + datatype.__name__)
     yield
 
 @aspectlib.Aspect
 def wrap_service_subscribe(self, name, datatype, persistent=False, headers=None):
-    print('<<serviceClient>> ' + rospy.names.resolve_name(name) + ' ' + datatype.__module__.split('.')[0] + '/' + datatype.__name__)
+    ws.send('<<serviceClient>> ' + rospy.names.resolve_name(name) + ' ' + datatype.__module__.split('.')[0] + '/' + datatype.__name__)
     yield
 
 @aspectlib.Aspect
@@ -45,3 +50,6 @@ aspectlib.weave(rospy.wait_for_service, wrap_wait_for_service)
 sys.argv = sys.argv[1:]
 
 exec(open(sys.argv[0]).read(), globals())
+
+print('close ws')
+ws.close()
