@@ -10,3 +10,9 @@ src/topic_inspection.cpp
 src/roscpp_preload.cpp
 src/sandboxed_execution.cpp
 include/ros_launch_lint/sandboxed_execution.h
+src/report.cpp
+include/ros_launch_lint/report.h
+src/node_tree.cpp
+include/ros_launch_lint/node_tree.h
+include/ros_launch_lint/load_roslaunch.h
+src/load_roslaunch.cpp

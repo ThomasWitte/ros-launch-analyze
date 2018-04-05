@@ -77,8 +77,11 @@ ROSCPP_PRELOAD=$(locate libroscpp_preload.so)
 (timeout -s 'TERM' 7 roscore &> /dev/null )&
 
 sleep 3
+
+# publish on the clock topic to avoid blocking nodes if use_sim_time is true
 (timeout -s 'TERM' 4 rostopic pub -r 10 /clock rosgraph_msgs/Clock 5 )&
 
+# set global ros parameters
 while [ "$1" != "--" ]; do
     >&2 echo rosparam set "$1" "$2"
     rosparam set "$1" "$2"
@@ -86,10 +89,14 @@ while [ "$1" != "--" ]; do
 done
 shift
 
+# get executable name for node
 path $1 $2
-    
+
 if [ -n "`file -b "$exepath" | grep Python`" ]
 then
+    # if the node is using python, use rospy_preload.py
+
+    # drop the package and node name, as rospy_preload uses the $exepath instead
     shift 2
     
     C=''
@@ -99,6 +106,7 @@ then
     done
     timeout 3 bash -c "rosrun ros_launch_lint rospy_preload.py $exepath $C"
 else
+    # otherwise, preload the roscpp_preload.so library and use standard rosrun
     C=''
     for i in "$@"; do 
         i="${i//\\/\\\\}"

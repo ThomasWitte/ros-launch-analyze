@@ -6,7 +6,6 @@ import sys
 
 from websocket import create_connection
 
-print('open ws')
 ws = create_connection("ws://localhost:34005/")
 
 @aspectlib.Aspect
@@ -51,5 +50,4 @@ sys.argv = sys.argv[1:]
 
 exec(open(sys.argv[0]).read(), globals())
 
-print('close ws')
 ws.close()

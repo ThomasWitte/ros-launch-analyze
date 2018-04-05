@@ -133,7 +133,12 @@ add_dependencies(roscpp_preload ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXP
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/lint.cpp src/sandboxed_execution.cpp)
+add_executable(${PROJECT_NAME}_node
+    src/lint.cpp
+    src/sandboxed_execution.cpp
+    src/report.cpp
+    src/load_roslaunch.cpp
+    src/node_tree.cpp)
 add_executable(${PROJECT_NAME}_topic src/topic_inspection.cpp)
 
 ## Rename C++ executable without prefix

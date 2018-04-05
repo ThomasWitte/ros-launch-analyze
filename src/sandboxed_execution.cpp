@@ -98,11 +98,16 @@ std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::ve
     if (opts.debug_cmdline)
         std::cout << " " << node.package << " " << node.type;
 
-    // split and add arguments (TODO: don't split quoted strings)
+    // split and add arguments
     if (!node.args.empty()) {
         std::stringstream ss {node.args};
         std::string s;
         while (ss >> s) {
+            // don't split quoted strings
+            if (s[0] == '\"') {
+                for (std::string s2; ss >> s2 && s2[s2.size()-1] != '\"'; s = s + " " + s2)
+                    ;
+            }
             get_topics.add_argument(s);
             if (opts.debug_cmdline)
                 std::cout << " " << s;
@@ -135,4 +140,39 @@ std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::ve
     get_topics.wait();
 
     return received_ports;
+}
+
+std::ostream& operator<< (std::ostream& out, const NodeDesc& desc) {
+    out << desc.name << std::endl;
+
+    for(const auto& p : desc.params)
+        out << "  " << p.first << "=" << p.second << std::endl;
+
+    out << std::endl;
+
+    for(const auto& p : desc.ports) {
+        out << "  " << p.name << " [" << p.data_type << "] class:";
+
+        switch(p.type) {
+        case Port::NONE:
+            out << "none";
+            break;
+        case Port::PUBLISHER:
+            out << "pub";
+            break;
+        case Port::SUBSCRIBER:
+            out << "sub";
+            break;
+        case Port::SERVICE_ADVERTISE:
+            out << "adv";
+            break;
+        case Port::SERVICE_CLIENT:
+            out << "call";
+            break;
+        }
+
+        out << std::endl;
+    }
+
+    return out;
 }

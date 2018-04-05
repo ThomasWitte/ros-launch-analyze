@@ -10,6 +10,7 @@
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 
+// union that enables casting function pointers returned by dlsym to member pointers
 template<typename memberT>
 union u_ptm_cast {
     memberT pmember;
@@ -18,6 +19,7 @@ union u_ptm_cast {
     static_assert(sizeof(memberT) == sizeof(vstruct), "void* and member* must have the same size");
 };
 
+// singleton that handles the websocket communication with the analysis plugin
 struct AnalysisClient {
     using client_t = websocketpp::client<websocketpp::config::asio_client>;
 
@@ -201,9 +203,9 @@ void start() {
     if (sim_time)
         AnalysisClient::get_instance()->log("<<subscribe>> " + names::resolve("/clock") + " rosgraph_msgs/Clock");
 
-//  if (!(g_init_options & init_options::NoRosout)) {
+    // if (!(g_init_options & init_options::NoRosout)) {
         AnalysisClient::get_instance()->log("<<advertise>> " + names::resolve("/rosout") + " rosgraph_msgs/Log");
-//    }
+    // }
 
     AnalysisClient::get_instance()->log("<<advertiseService>> " + names::resolve("~get_loggers") + " roscpp/GetLoggers");
     AnalysisClient::get_instance()->log("<<advertiseService>> " + names::resolve("~set_logger_level") + " roscpp/SetLoggerLevel");

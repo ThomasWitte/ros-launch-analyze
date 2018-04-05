@@ -61,4 +61,6 @@ private:
     std::future<void> fut;
 };
 
+std::ostream& operator<< (std::ostream& out, const NodeDesc& desc);
+
 #endif // SANDBOXED_EXECUTION_H
