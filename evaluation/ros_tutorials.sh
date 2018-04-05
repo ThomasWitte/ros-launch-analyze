@@ -14,18 +14,17 @@ olddir=`pwd`
 
 roscd rospy_tutorials
 for f in `find 0* -name "*.launch"` ; do
-    logfile="$olddir/rospy_$(basename $f .launch).log"
-    rosrun ros_launch_lint lint $f > $logfile
+    logfile="$olddir/rospy_$(basename $f .launch).ps"
+    rosrun ros_launch_lint lint --print-dot --no-print-node-tree --no-print-topics $f | dot -Tps > $logfile
 
-    logfile2="$olddir/rospy_reference_$(basename $f .launch).log"
-    rm $logfile2
+    logfile2="$olddir/rospy_reference_$(basename $f .launch)"
+    rm "$logfile2.log" "$logfile2.ps"
     (timeout 5 roslaunch $f)&
     sleep 2
     for n in `rosnode list` ; do
-        rosnode info $n >> $logfile2
+        rosnode info $n >> $logfile2.log
     done
     sleep 3
-    rm "$logfile2.ps"
-    cat "$logfile2" | lua "$olddir/roslog2dot.lua" | dot -Tps > "$logfile2.ps"
+    cat "$logfile2.log" | lua "$olddir/roslog2dot.lua" | dot -Tps > "$logfile2.ps"
 done
 cd -

@@ -72,7 +72,40 @@ void print_topics(const NodeListVisitor::tree_t& nodes) {
     }
 }
 
-void print_launch_file_info(const NodeListVisitor::tree_t& node_tree) {
-    print_node_tree(node_tree);
-    print_topics(node_tree);
+void print_dot(const NodeListVisitor::tree_t& nodes) {
+    std::cout << "digraph {" << std::endl;
+
+    int i = 0;
+    for (auto it = nodes.begin(); it != nodes.end(); ++it, ++i) {
+        if (it->type.empty())
+            continue;
+
+        std::string name = it->name;
+        for (auto node = it.node->parent; node != nullptr; node = node->parent) {
+            name = node->data.name + name;
+        }
+
+        std::cout << "node" << i << "[label=\"" << name << "\"; shape=box];" << std::endl;
+
+        for (const auto& p : it->ports) {
+            switch (p.type) {
+            case Port::PUBLISHER:
+                std::cout << "node" << i << " -> \"" << p.name << "\";" << std::endl;
+                break;
+            case Port::SUBSCRIBER:
+                std::cout << "\"" << p.name << "\" -> node" << i << ";" << std::endl;
+                break;
+            case Port::SERVICE_ADVERTISE:
+                std::cout << "node" << i << " -> {\"" << p.name << "\"[shape=octagon]};" << std::endl;
+                break;
+            case Port::SERVICE_CLIENT:
+                std::cout << "{\"" << p.name << "\"[shape=octagon]} -> node" << i << ";" << std::endl;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    std::cout << "}" << std::endl;
 }

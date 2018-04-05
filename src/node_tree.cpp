@@ -151,22 +151,23 @@ NodeListVisitor::tree_t::iterator NodeListVisitor::create_path(const std::string
 
 void NodeListVisitor::query_topics() {
     NodeAnalyzer na;
+    AnalysisOptions opts {false, false};
 
     for (auto it = nodes.begin(); it != nodes.end(); ++it) {
         // continue, if not a node
         if (it->type.empty())
             continue;
 
-        ROS_INFO_STREAM("querying topics for " << it->name);
+        //ROS_INFO_STREAM("querying topics for " << it->name);
 
-        auto ports = na.analyze_node(*it, global_params);
+        auto ports = na.analyze_node(*it, global_params, opts);
 
         for (auto& p : ports)
             p.name = get_absolute_path(it.node, p.name);
 
         it->ports = ports;
 
-        ROS_INFO_STREAM("...found " << it->ports.size() << " topics/services");
-        ROS_INFO_STREAM(*it);
+        //ROS_INFO_STREAM("...found " << it->ports.size() << " topics/services");
+        //ROS_INFO_STREAM(*it);
     }
 }
