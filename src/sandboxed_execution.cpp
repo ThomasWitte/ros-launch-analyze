@@ -52,18 +52,29 @@ void NodeAnalyzer::start_server() {
             }
         });
 
-        // Listen on port 34005
-        server.listen(34005);
+        while (!exiting) {
+            try {
+                ROS_INFO("listening...");
 
-        // Start the server accept loop
-        server.start_accept();
+                // Listen on port 34005
+                server.listen(34005);
 
-        // Start the ASIO io_service run loop
-        server.run();
+                // Start the server accept loop
+                server.start_accept();
+
+                // Start the ASIO io_service run loop
+                server.run();
+            } catch(...) {
+                ROS_INFO("exception caught");
+            }
+        }
+
     });
 }
 
 void NodeAnalyzer::stop_server() {
+    ROS_INFO("stopping server");
+    exiting = true;
     server.stop_listening();
 }
 

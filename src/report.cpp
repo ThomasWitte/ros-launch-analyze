@@ -1,11 +1,11 @@
 #include "ros_launch_lint/report.h"
 
-void print_node_tree(const NodeListVisitor::tree_t& nodes) {
+void print_node_tree(const NodeListVisitor::tree_t& nodes, std::ostream& output) {
     std::map<std::string, int> colors;
     int next_color = 31;
     for (auto it = nodes.begin(); it != nodes.end(); ++it) {
         for (int i = nodes.depth(it); i > 0; --i) {
-            std::cout << "  ";
+            output << "  ";
         }
         if (colors.find(it->launch_file) == colors.end()) {
             colors[it->launch_file] = next_color++;
@@ -24,19 +24,19 @@ void print_node_tree(const NodeListVisitor::tree_t& nodes) {
             str += padding + "[" + it->package + "/" + it->type + "]";
         }
 
-        std::cout << "\x1b[" << colors[it->launch_file] << "m"
+        output << "\x1b[" << colors[it->launch_file] << "m"
                   << str
                   << "\x1b[0m" << std::endl;
     }
 
-    std::cout << std::endl;
+    output << std::endl;
 
     for (const auto& elt : colors) {
-        std::cout << "\x1b[" << elt.second << "m" << elt.first << "\x1b[0m" << std::endl;
+        output << "\x1b[" << elt.second << "m" << elt.first << "\x1b[0m" << std::endl;
     }
 }
 
-void print_topics(const NodeListVisitor::tree_t& nodes) {
+void print_topics(const NodeListVisitor::tree_t& nodes, std::ostream& output) {
     //       topic                   publisher                 subscriber                type
     std::map<std::string, std::tuple<std::vector<std::string>, std::vector<std::string>, std::string>> topics;
 
@@ -46,8 +46,8 @@ void print_topics(const NodeListVisitor::tree_t& nodes) {
                 if (std::get<2>(topics[p.name]) != "" &&
                     std::get<2>(topics[p.name]) != "*") {
 
-                    std::cout << "Incompatible types at topic/service " << p.name << ": "
-                              << std::get<2>(topics[p.name]) << "!=" << p.data_type << std::endl;
+                    output << "Incompatible types at topic/service " << p.name << ": "
+                           << std::get<2>(topics[p.name]) << "!=" << p.data_type << std::endl;
                 } else {
                     std::get<2>(topics[p.name]) = p.data_type;
                 }
@@ -61,45 +61,47 @@ void print_topics(const NodeListVisitor::tree_t& nodes) {
     }
 
     for (const auto& elt : topics) {
-        std::cout << elt.first << " (" << std::get<2>(elt.second) << "):" << std::endl;
-        std::cout << "  ";
+        output << elt.first << " (" << std::get<2>(elt.second) << "):" << std::endl;
+        output << "  ";
         for (const auto& s : std::get<0>(elt.second))
-            std::cout << s << " ";
-        std::cout << "-> ";
+            output << s << " ";
+        output << "-> ";
         for (const auto& s : std::get<1>(elt.second))
-            std::cout << s << " ";
-        std::cout << std::endl;
+            output << s << " ";
+        output << std::endl;
     }
 }
 
-void print_dot(const NodeListVisitor::tree_t& nodes) {
-    std::cout << "digraph {" << std::endl;
+void print_dot(const NodeListVisitor::tree_t& nodes, std::ostream& output) {
+    output << "digraph {" << std::endl;
 
     int i = 0;
-    for (auto it = nodes.begin(); it != nodes.end(); ++it, ++i) {
+    for (auto it = nodes.begin(); it != nodes.end(); ++it) {
         if (it->type.empty())
             continue;
+
+        ++i;
 
         std::string name = it->name;
         for (auto node = it.node->parent; node != nullptr; node = node->parent) {
             name = node->data.name + name;
         }
 
-        std::cout << "node" << i << "[label=\"" << name << "\"; shape=box];" << std::endl;
+        output << "node" << i << "[label=\"" << name << "\"; shape=box];" << std::endl;
 
         for (const auto& p : it->ports) {
             switch (p.type) {
             case Port::PUBLISHER:
-                std::cout << "node" << i << " -> \"" << p.name << "\";" << std::endl;
+                output << "node" << i << " -> \"" << p.name << "\";" << std::endl;
                 break;
             case Port::SUBSCRIBER:
-                std::cout << "\"" << p.name << "\" -> node" << i << ";" << std::endl;
+                output << "\"" << p.name << "\" -> node" << i << ";" << std::endl;
                 break;
             case Port::SERVICE_ADVERTISE:
-                std::cout << "node" << i << " -> {\"" << p.name << "\"[shape=octagon]};" << std::endl;
+                output << "node" << i << " -> {\"" << p.name << "\"[shape=octagon]};" << std::endl;
                 break;
             case Port::SERVICE_CLIENT:
-                std::cout << "{\"" << p.name << "\"[shape=octagon]} -> node" << i << ";" << std::endl;
+                output << "{\"" << p.name << "\"[shape=octagon]} -> node" << i << ";" << std::endl;
                 break;
             default:
                 break;
@@ -107,5 +109,5 @@ void print_dot(const NodeListVisitor::tree_t& nodes) {
         }
     }
 
-    std::cout << "}" << std::endl;
+    output << "}" << std::endl;
 }

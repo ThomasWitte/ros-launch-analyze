@@ -1,6 +1,8 @@
 #include "ros_launch_lint/load_roslaunch.h"
 #include "ros_launch_lint/node_tree.h"
 #include "ros_launch_lint/report.h"
+#include <iostream>
+#include <fstream>
 
 void print_usage() {
     ROS_INFO("usage: ros-launch-lint [OPTIONS] LAUNCH-FILE");
@@ -20,7 +22,16 @@ struct Options {
 
             if (s == "--analyze-sandbox")    analyze_sandbox = true;
             if (s == "--no-analyze-sandbox") analyze_sandbox = false;
+
+            if (s == "-o" && i+1 < argc) {
+                of.open(argv[i+1]);
+            }
         }
+    }
+
+    ~Options() {
+        if (of.is_open())
+            of.close();
     }
 
     bool print_dot = false;
@@ -28,6 +39,15 @@ struct Options {
     bool print_topics = true;
 
     bool analyze_sandbox = true;
+
+    std::ostream& output() {
+        if (of.is_open())
+            return of;
+        return std::cout;
+    }
+
+private:
+    std::ofstream of;
 };
 
 int main(int argc, char* argv[]) {
@@ -47,7 +67,7 @@ int main(int argc, char* argv[]) {
 
     // create node tree
     NodeListVisitor nv(filename);
-    doc.Accept(&nv);
+    idoc.Accept(&nv);
 
     // decorate node tree with data from the sandboxed execution
     if (op.analyze_sandbox)
@@ -55,13 +75,13 @@ int main(int argc, char* argv[]) {
 
     // create report
     if (op.print_dot)
-        print_dot(nv.node_tree());
+        print_dot(nv.node_tree(), op.output());
 
     if (op.print_node_tree)
-        print_node_tree(nv.node_tree());
+        print_node_tree(nv.node_tree(), op.output());
 
     if (op.print_topics)
-        print_topics(nv.node_tree());
+        print_topics(nv.node_tree(), op.output());
 
     return 0;
 }

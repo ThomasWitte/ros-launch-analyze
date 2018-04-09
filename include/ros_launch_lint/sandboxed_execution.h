@@ -59,6 +59,7 @@ private:
 
     server_t server;
     std::future<void> fut;
+    bool exiting = false;
 };
 
 std::ostream& operator<< (std::ostream& out, const NodeDesc& desc);

@@ -14,8 +14,9 @@ olddir=`pwd`
 
 roscd rospy_tutorials
 for f in `find 0* -name "*.launch"` ; do
-    logfile="$olddir/rospy_$(basename $f .launch).ps"
-    rosrun ros_launch_lint lint --print-dot --no-print-node-tree --no-print-topics $f | dot -Tps > $logfile
+    logfile="$olddir/rospy_$(basename $f .launch)"
+    rosrun ros_launch_lint lint --print-dot --no-print-node-tree --no-print-topics -o "$logfile.dot" $f
+    dot -Tps "$logfile.dot" > "$logfile.ps"
 
     logfile2="$olddir/rospy_reference_$(basename $f .launch)"
     rm "$logfile2.log" "$logfile2.ps"
