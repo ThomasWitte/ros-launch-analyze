@@ -2,6 +2,7 @@
 #include <procxx/include/process.h>
 #include <ros/ros.h>
 #include <ros/package.h>
+#include <cstdlib>
 
 NodeAnalyzer::NodeAnalyzer() {
     start_server();
@@ -82,7 +83,7 @@ std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::ve
 
     // create process
     procxx::process get_topics {"firejail",
-                                "--env=LD_LIBRARY_PATH=/home/thomas/catkin_ws/devel/lib:/home/thomas/ros_ws/devel/lib:/opt/ros/kinetic/lib:/home/thomas/local/lib",
+                                "--env=LD_LIBRARY_PATH=" + std::string(std::getenv("LD_LIBRARY_PATH")),
                                 "--overlay",
                                 "--quiet",
                                 ros::package::getPath("ros_launch_lint") + "/get_topics.sh"};
