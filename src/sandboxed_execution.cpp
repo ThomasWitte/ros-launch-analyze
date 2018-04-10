@@ -154,37 +154,24 @@ std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::ve
     return received_ports;
 }
 
-std::ostream& operator<< (std::ostream& out, const NodeDesc& desc) {
-    out << desc.name << std::endl;
+void sandboxed_execution(NodeTree& node_tree) {
+    NodeAnalyzer na;
 
-    for(const auto& p : desc.params)
-        out << "  " << p.first << "=" << p.second << std::endl;
+    for (auto it = node_tree.nodes.begin(); it != node_tree.nodes.end(); ++it) {
+        // continue, if not a node
+        if (it->type.empty())
+            continue;
 
-    out << std::endl;
+        ROS_INFO_STREAM("querying topics for " << it->name);
 
-    for(const auto& p : desc.ports) {
-        out << "  " << p.name << " [" << p.data_type << "] class:";
+        auto ports = na.analyze_node(*it, node_tree.global_params);
 
-        switch(p.type) {
-        case Port::NONE:
-            out << "none";
-            break;
-        case Port::PUBLISHER:
-            out << "pub";
-            break;
-        case Port::SUBSCRIBER:
-            out << "sub";
-            break;
-        case Port::SERVICE_ADVERTISE:
-            out << "adv";
-            break;
-        case Port::SERVICE_CLIENT:
-            out << "call";
-            break;
-        }
+        for (auto& p : ports)
+            p.name = get_absolute_path(it.node, p.name);
 
-        out << std::endl;
+        it->ports = ports;
+
+        ROS_INFO_STREAM("...found " << it->ports.size() << " topics/services");
+        ROS_INFO_STREAM(*it);
     }
-
-    return out;
 }

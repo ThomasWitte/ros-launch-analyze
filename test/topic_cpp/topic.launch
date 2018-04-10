@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!-- topic_cpp -->
+    <node name="topic_cpp"
+          pkg="ros_launch_lint"
+          type="topic_cpp"
+          required="true"/>
+</launch>

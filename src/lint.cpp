@@ -1,6 +1,8 @@
 #include "ros_launch_lint/load_roslaunch.h"
 #include "ros_launch_lint/node_tree.h"
 #include "ros_launch_lint/report.h"
+#include "ros_launch_lint/sandboxed_execution.h"
+#include "ros_launch_lint/xml_annotation.h"
 #include <iostream>
 #include <fstream>
 
@@ -22,6 +24,8 @@ struct Options {
 
             if (s == "--analyze-sandbox")    analyze_sandbox = true;
             if (s == "--no-analyze-sandbox") analyze_sandbox = false;
+            if (s == "--xml-annotation")     xml_annotation = true;
+            if (s == "--no-xml-annotation")  xml_annotation = false;
 
             if (s == "-o" && i+1 < argc) {
                 of.open(argv[i+1]);
@@ -38,6 +42,7 @@ struct Options {
     bool print_node_tree = true;
     bool print_topics = true;
 
+    bool xml_annotation = true;
     bool analyze_sandbox = true;
 
     std::ostream& output() {
@@ -68,20 +73,25 @@ int main(int argc, char* argv[]) {
     // create node tree
     NodeListVisitor nv(filename);
     idoc.Accept(&nv);
+    auto node_tree = nv.node_tree();
+
+    // decorate node tree with data from the xml annotations
+    if (op.xml_annotation)
+        xml_annotation(node_tree);
 
     // decorate node tree with data from the sandboxed execution
     if (op.analyze_sandbox)
-        nv.query_topics();
+        sandboxed_execution(node_tree);
 
     // create report
     if (op.print_dot)
-        print_dot(nv.node_tree(), op.output());
+        print_dot(node_tree, op.output());
 
     if (op.print_node_tree)
-        print_node_tree(nv.node_tree(), op.output());
+        print_node_tree(node_tree, op.output());
 
     if (op.print_topics)
-        print_topics(nv.node_tree(), op.output());
+        print_topics(node_tree, op.output());
 
     return 0;
 }

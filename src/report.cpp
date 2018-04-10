@@ -1,10 +1,10 @@
 #include "ros_launch_lint/report.h"
 
-void print_node_tree(const NodeListVisitor::tree_t& nodes, std::ostream& output) {
+void print_node_tree(const NodeTree& tree, std::ostream& output) {
     std::map<std::string, int> colors;
     int next_color = 31;
-    for (auto it = nodes.begin(); it != nodes.end(); ++it) {
-        for (int i = nodes.depth(it); i > 0; --i) {
+    for (auto it = tree.nodes.begin(); it != tree.nodes.end(); ++it) {
+        for (int i = tree.nodes.depth(it); i > 0; --i) {
             output << "  ";
         }
         if (colors.find(it->launch_file) == colors.end()) {
@@ -13,7 +13,7 @@ void print_node_tree(const NodeListVisitor::tree_t& nodes, std::ostream& output)
 
         std::string str = it->name;
         if (!it->type.empty()) {
-            int padding_w = 32 - it->name.size() - 2*nodes.depth(it);
+            int padding_w = 32 - it->name.size() - 2*tree.nodes.depth(it);
             if (padding_w < 0) {
                 str.resize(std::max(str.size() + padding_w - 3, 0ul));
                 str += "...";
@@ -36,11 +36,11 @@ void print_node_tree(const NodeListVisitor::tree_t& nodes, std::ostream& output)
     }
 }
 
-void print_topics(const NodeListVisitor::tree_t& nodes, std::ostream& output) {
+void print_topics(const NodeTree& tree, std::ostream& output) {
     //       topic                   publisher                 subscriber                type
     std::map<std::string, std::tuple<std::vector<std::string>, std::vector<std::string>, std::string>> topics;
 
-    for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+    for (auto it = tree.nodes.begin(); it != tree.nodes.end(); ++it) {
         for (const auto& p : it->ports) {
             if (std::get<2>(topics[p.name]) != p.data_type && p.data_type != "*") {
                 if (std::get<2>(topics[p.name]) != "" &&
@@ -72,11 +72,11 @@ void print_topics(const NodeListVisitor::tree_t& nodes, std::ostream& output) {
     }
 }
 
-void print_dot(const NodeListVisitor::tree_t& nodes, std::ostream& output) {
+void print_dot(const NodeTree& tree, std::ostream& output) {
     output << "digraph {" << std::endl;
 
     int i = 0;
-    for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+    for (auto it = tree.nodes.begin(); it != tree.nodes.end(); ++it) {
         if (it->type.empty())
             continue;
 

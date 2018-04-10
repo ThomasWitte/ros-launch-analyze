@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script starts an automatic evaluation on the ros_tutorials project.
-# start it using "source ./ros_tutorials.sh" to avoid errors due to missing
+# start it using "source ./eval_ros_tutorials.sh" to avoid errors due to missing
 # roscd etc.
 # The results are written to the file rospy.log in the current directory.
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script starts an automatic evaluation on the ros_tutorials project.
-# start it using "source ./eval_trajectory_server.sh" to avoid errors due to missing
+# start it using "source ./eval_hector_quadrotor.sh" to avoid errors due to missing
 # roscd etc.
 # The results are written to the file rospy.log in the current directory.
 
@@ -11,15 +11,15 @@ if [ "`type -t roscd`" != "function" ]; then
 fi
 
 olddir=`pwd`
-launchfile="launch/start_collision_test2.launch"
+launchfile="launch/indoor_slam_gazebo.launch"
 
-roscd trajectory_server
+roscd hector_quadrotor_demo
 
-logfile="$olddir/trajectory_server_$(basename $launchfile .launch)"
+logfile="$olddir/hector_quadrotor_$(basename $launchfile .launch)"
 rosrun ros_launch_lint lint --print-dot --no-print-node-tree --no-print-topics -o "$logfile.dot" $launchfile
 dot -Tps "$logfile.dot" > "$logfile.ps"
 
-logfile2="$olddir/trajectory_server_reference_$(basename $launchfile .launch)"
+logfile2="$olddir/hector_quadrotor_reference_$(basename $launchfile .launch)"
 rm "$logfile2.log" "$logfile2.ps"
 (timeout 25 roslaunch $launchfile)&
 sleep 5

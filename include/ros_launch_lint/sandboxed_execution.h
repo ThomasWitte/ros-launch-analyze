@@ -10,30 +10,7 @@
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
-using param_t = std::pair<std::string, std::string>;
-
-struct Port {
-    std::string name;
-    std::string data_type;
-    int64_t position;
-    enum {NONE=0, PUBLISHER, SUBSCRIBER, SERVICE_ADVERTISE, SERVICE_CLIENT} type;
-};
-
-struct NodeDesc {
-    std::string name;
-    std::string type;
-    std::string package;
-    std::string launch_file;
-
-    // params
-    std::vector<param_t> params;
-    std::string args;
-
-    // topics
-    std::vector<Port> ports;
-
-    friend std::ostream& operator<< (std::ostream& out, const NodeDesc& desc);
-};
+#include <ros_launch_lint/node_tree.h>
 
 struct AnalysisOptions {
     bool debug_cmdline = false;
@@ -62,6 +39,6 @@ private:
     bool exiting = false;
 };
 
-std::ostream& operator<< (std::ostream& out, const NodeDesc& desc);
+void sandboxed_execution(NodeTree& node_tree);
 
 #endif // SANDBOXED_EXECUTION_H

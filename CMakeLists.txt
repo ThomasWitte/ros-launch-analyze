@@ -138,7 +138,8 @@ add_executable(${PROJECT_NAME}_node
     src/sandboxed_execution.cpp
     src/report.cpp
     src/load_roslaunch.cpp
-    src/node_tree.cpp)
+    src/node_tree.cpp
+    src/xml_annotation.cpp)
 add_executable(${PROJECT_NAME}_topic src/topic_inspection.cpp)
 
 ## Rename C++ executable without prefix
@@ -167,6 +168,13 @@ target_link_libraries(roscpp_preload
   ${catkin_LIBRARIES}
   boost_system
 )
+
+#test nodes
+
+add_executable(${PROJECT_NAME}_test_topic_cpp test/topic_cpp/topic.cpp)
+set_target_properties(${PROJECT_NAME}_test_topic_cpp PROPERTIES OUTPUT_NAME topic_cpp PREFIX "")
+add_dependencies(${PROJECT_NAME}_test_topic_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_test_topic_cpp ${catkin_LIBRARIES})
 
 #############
 ## Install ##

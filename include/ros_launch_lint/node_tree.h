@@ -2,7 +2,6 @@
 #define NODE_TREE_H
 
 #include "ros_launch_lint/tree.h"
-#include "ros_launch_lint/sandboxed_execution.h"
 #include <procxx/include/process.h>
 
 #include <ros/ros.h>
@@ -13,45 +12,72 @@
 
 using namespace tinyxml2;
 
+using param_t = std::pair<std::string, std::string>;
+
+struct Port {
+    std::string name;
+    std::string data_type;
+    int64_t position;
+    enum {NONE=0, PUBLISHER, SUBSCRIBER, SERVICE_ADVERTISE, SERVICE_CLIENT} type;
+};
+
+struct NodeDesc {
+    std::string name;
+    std::string type;
+    std::string package;
+    std::string launch_file;
+
+    // params
+    std::vector<param_t> params = std::vector<param_t>();
+    std::string args = "";
+
+    // topics
+    std::vector<Port> ports = std::vector<Port>();
+
+    // corresponding xml
+    XMLConstHandle xml = XMLConstHandle {nullptr};
+
+    friend std::ostream& operator<< (std::ostream& out, const NodeDesc& desc);
+};
+
+std::ostream& operator<< (std::ostream& out, const NodeDesc& desc);
+
+struct NodeTree {
+    using tree_t = tree<NodeDesc>;
+    tree_t nodes;
+    std::vector<param_t> global_params;
+};
+
+template <typename T>
+std::string get_absolute_path(T* node, std::string path) {
+    while (path.empty() || path[0] != '/') {
+        node = node->parent;
+        path = node->data.name + path;
+    }
+    return path;
+}
+
 class NodeListVisitor : public XMLVisitor {
 public:
-
-    using tree_t = tree<NodeDesc>;
-
     NodeListVisitor(const std::string& root_xml);
-
-    virtual bool Visit (const XMLComment &elt) override;
 
     virtual bool VisitExit (const XMLElement &elt) override;
 
     virtual bool VisitEnter (const XMLElement &elt, const XMLAttribute *) override;
 
-    tree_t::iterator create_path(const std::string& path);
+    NodeTree::tree_t::iterator create_path(const std::string& path);
 
-    void query_topics();
-
-    template <typename T>
-    std::string get_absolute_path(T* node, std::string path) {
-        while (path.empty() || path[0] != '/') {
-            node = node->parent;
-            path = node->data.name + path;
-        }
-        return path;
-    }
-
-    const tree_t& node_tree() const {
-        return nodes;
+    const NodeTree& node_tree() const {
+        return tree;
     }
 
 private:
     std::stack<std::string> nss;
     std::stack<std::string> file_stack;
-    tree_t nodes;
-    tree_t::iterator it;
+    NodeTree tree;
+    NodeTree::tree_t::iterator it;
 
     std::vector<param_t> private_params;
-    std::vector<param_t> global_params;
-    std::vector<Port> node_ports;
 };
 
 #endif // NODE_TREE_H

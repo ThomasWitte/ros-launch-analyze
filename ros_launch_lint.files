@@ -16,3 +16,5 @@ src/node_tree.cpp
 include/ros_launch_lint/node_tree.h
 include/ros_launch_lint/load_roslaunch.h
 src/load_roslaunch.cpp
+src/xml_annotation.cpp
+include/ros_launch_lint/xml_annotation.h
