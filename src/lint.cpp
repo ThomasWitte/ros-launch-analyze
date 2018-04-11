@@ -27,6 +27,17 @@ struct Options {
             if (s == "--xml-annotation")     xml_annotation = true;
             if (s == "--no-xml-annotation")  xml_annotation = false;
 
+            if (s == "--compare") {
+                print_dot = false;
+                print_node_tree = false;
+                print_topics = false;
+
+                xml_annotation = false;
+                analyze_sandbox = false;
+
+                compare = true;
+            }
+
             if (s == "-o" && i+1 < argc) {
                 of.open(argv[i+1]);
             }
@@ -44,6 +55,8 @@ struct Options {
 
     bool xml_annotation = true;
     bool analyze_sandbox = true;
+
+    bool compare = false;
 
     std::ostream& output() {
         if (of.is_open())
@@ -92,6 +105,19 @@ int main(int argc, char* argv[]) {
 
     if (op.print_topics)
         print_topics(node_tree, op.output());
+
+    // compare feature to check differences between xml annotations
+    // and sandboxed execution results
+    if (op.compare) {
+        auto xml_tree = nv.node_tree();
+        xml_annotation(xml_tree);
+
+        auto sandbox_tree = nv.node_tree();
+        sandboxed_execution(sandbox_tree);
+
+        if (!diff_ports(xml_tree, sandbox_tree, op.output()))
+            return -1;
+    }
 
     return 0;
 }

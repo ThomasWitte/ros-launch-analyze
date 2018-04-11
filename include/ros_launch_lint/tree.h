@@ -63,9 +63,8 @@ tree_node_<T>::tree_node_(const T& val)
 
 template <class T, class tree_node_allocator = std::allocator<tree_node_<T> > >
 class tree {
-    protected:
-        typedef tree_node_<T> tree_node;
     public:
+        typedef tree_node_<T> tree_node;
         /// Value of the data stored at a node.
         typedef T value_type;
 

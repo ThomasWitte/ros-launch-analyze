@@ -19,6 +19,12 @@ struct Port {
     std::string data_type;
     int64_t position;
     enum {NONE=0, PUBLISHER, SUBSCRIBER, SERVICE_ADVERTISE, SERVICE_CLIENT} type;
+
+    bool operator== (const Port& o) const {
+        return name == o.name &&
+               data_type == o.data_type &&
+               type == o.type;
+    }
 };
 
 struct NodeDesc {

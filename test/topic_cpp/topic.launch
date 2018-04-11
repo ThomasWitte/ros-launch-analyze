@@ -5,5 +5,37 @@
     <node name="topic_cpp"
           pkg="ros_launch_lint"
           type="topic_cpp"
-          required="true"/>
+          required="true">
+        <!--
+        <topics>
+            <topic name="chatter"
+                   type="std_msgs/String"
+                   class="pub"/>
+            <topic name="chatter"
+                   type="std_msgs/String"
+                   class="sub"/>
+            <topic name="chatter2"
+                   type="std_msgs/String"
+                   class="pub"/>
+            <topic name="chatter3"
+                   type="std_msgs/String"
+                   class="pub"/>
+            <topic name="chatter3"
+                   type="std_msgs/String"
+                   class="sub"/>
+            <topic name="chatter4"
+                   type="std_msgs/String"
+                   class="pub"/>
+            <topic name="chatter4"
+                   type="std_msgs/String"
+                   class="sub"/>
+            <topic name="chatter5"
+                   type="std_msgs/String"
+                   class="pub"/>
+            <topic name="chatter6"
+                   type="std_msgs/String"
+                   class="pub"/>
+        </topics>
+        -->
+    </node>
 </launch>
