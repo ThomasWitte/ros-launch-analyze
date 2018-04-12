@@ -29,6 +29,7 @@ struct Port {
 
 struct NodeDesc {
     std::string name;
+    std::string path;
     std::string type;
     std::string package;
     std::string launch_file;

@@ -58,6 +58,8 @@ template <typename T>
 bool is_equal(const T& a, const T& b,
               std::function<bool(const typename T::value_type&, const typename T::value_type)> elt_eq
                     = std::equal_to<typename T::value_type>()) {
+    //TODO: avoid doubled comparisons
+
     for (const auto& a_elt : a) {
         bool found = false;
         for (const auto& b_elt : b) {
@@ -89,7 +91,7 @@ bool diff_ports(const NodeTree& a, const NodeTree& b, std::ostream& output) {
     bool mismatch = false;
 
     bool nodes_found = is_equal(a.nodes, b.nodes, [&](const NodeDesc& na, const NodeDesc& nb) {
-        if (na.name != nb.name)
+        if (na.name != nb.name || na.path != nb.path)
             return false;
 
         bool ports_equal = is_equal(na.ports, nb.ports);

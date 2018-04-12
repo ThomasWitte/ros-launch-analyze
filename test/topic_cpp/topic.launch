@@ -38,4 +38,49 @@
         </topics>
         -->
     </node>
+    
+    <group ns="foo">
+        <param name="param2"
+               value="/bla/baz"/>
+    
+        <!-- topic_cpp -->
+        <node name="topic_cpp"
+              pkg="ros_launch_lint"
+              type="topic_cpp"
+              required="true">
+            <param name="param1"
+                   value="bar"/>  
+            <!--
+            <topics>
+                <topic name="chatter"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="chatter"
+                       type="std_msgs/String"
+                       class="sub"/>
+                <topic name="chatter2"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="chatter3"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="chatter3"
+                       type="std_msgs/String"
+                       class="sub"/>
+                <topic name="chatter4"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="chatter4"
+                       type="std_msgs/String"
+                       class="sub"/>
+                <topic name="bar"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/bla/baz"
+                       type="std_msgs/String"
+                       class="pub"/>
+            </topics>
+            -->
+        </node>
+    </group>
 </launch>

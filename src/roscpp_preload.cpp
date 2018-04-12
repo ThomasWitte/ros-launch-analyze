@@ -112,11 +112,7 @@ Publisher NodeHandle::advertise(AdvertiseOptions& opts) {
         orig_advertise = tmp.pmember;
     }
 
-    std::string ns = getUnresolvedNamespace();
-    if (!ns.empty())
-        ns.append("/");
-
-    AnalysisClient::get_instance()->log("<<advertise>> " + ns + opts.topic + " " + opts.datatype);
+    AnalysisClient::get_instance()->log("<<advertise>> " + names::resolve(opts.topic) + " " + opts.datatype);
 
     return (this->*orig_advertise)(opts);
 }
@@ -133,11 +129,7 @@ Subscriber NodeHandle::subscribe(SubscribeOptions& opts) {
         orig_subscribe = tmp.pmember;
     }
 
-    std::string ns = getUnresolvedNamespace();
-    if (!ns.empty())
-        ns.append("/");
-
-    AnalysisClient::get_instance()->log("<<subscribe>> " + ns + opts.topic + " " + opts.datatype);
+    AnalysisClient::get_instance()->log("<<subscribe>> " + names::resolve(opts.topic) + " " + opts.datatype);
 
     return (this->*orig_subscribe)(opts);
 }
@@ -154,11 +146,7 @@ ServiceServer NodeHandle::advertiseService(AdvertiseServiceOptions &opts) {
         orig_advertise = tmp.pmember;
     }
 
-    std::string ns = getUnresolvedNamespace();
-    if (!ns.empty())
-        ns.append("/");
-
-    AnalysisClient::get_instance()->log("<<advertiseService>> " + ns + opts.service + " " + opts.datatype);
+    AnalysisClient::get_instance()->log("<<advertiseService>> " + names::resolve(opts.service) + " " + opts.datatype);
 
     return (this->*orig_advertise)(opts);
 }
@@ -175,11 +163,7 @@ ServiceClient NodeHandle::serviceClient(ServiceClientOptions &opts) {
         orig_client = tmp.pmember;
     }
 
-    std::string ns = getUnresolvedNamespace();
-    if (!ns.empty())
-        ns.append("/");
-
-    AnalysisClient::get_instance()->log("<<serviceClient>> " + ns + opts.service + " " + opts.md5sum);
+    AnalysisClient::get_instance()->log("<<serviceClient>> " + names::resolve(opts.service) + " " + opts.md5sum);
 
     return (this->*orig_client)(opts);
 }

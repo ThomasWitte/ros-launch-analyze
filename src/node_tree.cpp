@@ -3,7 +3,7 @@
 NodeListVisitor::NodeListVisitor(const std::string& root_xml) {
     nss.push("/");
     file_stack.push(root_xml);
-    tree.nodes.insert(tree.nodes.begin(), NodeDesc {"/", "", "", root_xml});
+    tree.nodes.insert(tree.nodes.begin(), NodeDesc {"/", "", "", "", root_xml});
     it = create_path(nss.top());
 }
 
@@ -24,6 +24,7 @@ bool NodeListVisitor::VisitExit (const XMLElement &elt) {
 
     if (std::string(elt.Name()) == "node") {
         tree.nodes.append_child(it, NodeDesc {elt.Attribute("name"),
+                                              get_absolute_path(it.node, it->name),
                                               elt.Attribute("type"),
                                               elt.Attribute("pkg"),
                                               file_stack.top(),
@@ -36,8 +37,10 @@ bool NodeListVisitor::VisitExit (const XMLElement &elt) {
             && elt.Parent() && std::string(elt.Parent()->ToElement()->Name()) != "node") {
 
         // we are not inside a node -> the param is global
-        for (const auto& p : private_params)
+        for (auto& p : private_params) {
+            p.first = get_absolute_path(it.node, it->name + p.first);
             tree.global_params.push_back(p);
+        }
         private_params.clear();
     }
 
@@ -91,7 +94,7 @@ NodeTree::tree_t::iterator NodeListVisitor::create_path(const std::string& path)
         unsigned num_children = tree_it.number_of_children();
         if (num_children == 0) {
             tree_it = tree.nodes.append_child(tree_it,
-                                              NodeDesc {ns, "", "", file_stack.top()});
+                                              NodeDesc {ns, get_absolute_path(tree_it.node, tree_it->name), "", "", file_stack.top()});
         } else {
             bool found = false;
             for (auto child_it = tree_it.begin(); child_it != tree_it.end(); ++child_it) {
@@ -103,7 +106,7 @@ NodeTree::tree_t::iterator NodeListVisitor::create_path(const std::string& path)
             }
             if (!found) {
                 tree_it = tree.nodes.append_child(tree_it,
-                                                  NodeDesc {ns, "", "", file_stack.top()});
+                                                  NodeDesc {ns, get_absolute_path(tree_it.node, tree_it->name), "", "", file_stack.top()});
             }
         }
     }
@@ -112,7 +115,7 @@ NodeTree::tree_t::iterator NodeListVisitor::create_path(const std::string& path)
 }
 
 std::ostream& operator<< (std::ostream& out, const NodeDesc& desc) {
-    out << desc.name << std::endl;
+    out << desc.path << desc.name << std::endl;
 
     for(const auto& p : desc.params)
         out << "  " << p.first << "=" << p.second << std::endl;

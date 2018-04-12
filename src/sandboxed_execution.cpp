@@ -127,6 +127,8 @@ std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::ve
     }
 
     // add private parameters
+    get_topics.add_argument("__name:=" + node.name);
+    get_topics.add_argument("__ns:=" + node.path);
     for (const auto param : node.params) {
         get_topics.add_argument(std::string("_") + param.first + ":=" + param.second);
         if (opts.debug_cmdline)
@@ -166,8 +168,8 @@ void sandboxed_execution(NodeTree& node_tree) {
 
         auto ports = na.analyze_node(*it, node_tree.global_params);
 
-        for (auto& p : ports)
-            p.name = get_absolute_path(it.node, p.name);
+//        for (auto& p : ports)
+//            p.name = get_absolute_path(it.node, p.name);
 
         it->ports = ports;
 
