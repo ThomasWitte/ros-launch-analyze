@@ -26,6 +26,6 @@ for f in `find 0* -name "*.launch"` ; do
         rosnode info $n >> $logfile2.log
     done
     sleep 3
-    cat "$logfile2.log" | lua "$olddir/roslog2dot.lua" | dot -Tps > "$logfile2.ps"
+    cat "$logfile2.log" | lua "$olddir/../tools/roslog2dot.lua" | dot -Tps > "$logfile2.ps"
 done
 cd -

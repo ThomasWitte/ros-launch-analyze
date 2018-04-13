@@ -27,6 +27,6 @@ for n in `rosnode list` ; do
     rosnode info $n >> $logfile2.log
 done
 sleep 20
-cat "$logfile2.log" | lua "$olddir/roslog2dot.lua" | dot -Tps > "$logfile2.ps"
+cat "$logfile2.log" | lua "$olddir/../tools/roslog2dot.lua" | dot -Tps > "$logfile2.ps"
 
 cd -
