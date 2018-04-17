@@ -168,8 +168,8 @@ void sandboxed_execution(NodeTree& node_tree) {
 
         auto ports = na.analyze_node(*it, node_tree.global_params);
 
-//        for (auto& p : ports)
-//            p.name = get_absolute_path(it.node, p.name);
+        for (auto& p : ports)
+            p.name = get_absolute_path(it.node, resolve_remaps(*it, p.name));
 
         it->ports = ports;
 

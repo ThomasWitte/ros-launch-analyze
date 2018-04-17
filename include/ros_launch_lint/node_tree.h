@@ -27,12 +27,22 @@ struct Port {
     }
 };
 
+struct Namespace {
+    std::string name;
+
+    using remap_t = std::pair<std::string, std::string>;
+    std::vector<remap_t> remaps = std::vector<remap_t>();
+};
+
 struct NodeDesc {
     std::string name;
     std::string path;
     std::string type;
     std::string package;
     std::string launch_file;
+
+    // corresponding namespace
+    Namespace ns = Namespace {""};
 
     // params
     std::vector<param_t> params = std::vector<param_t>();
@@ -64,6 +74,8 @@ std::string get_absolute_path(T* node, std::string path) {
     return path;
 }
 
+std::string resolve_remaps(const NodeDesc& node, std::string path);
+
 class NodeListVisitor : public XMLVisitor {
 public:
     NodeListVisitor(const std::string& root_xml);
@@ -79,11 +91,19 @@ public:
     }
 
 private:
-    std::stack<std::string> nss;
+    // namespace stack
+    std::stack<Namespace> nss;
+
+    // include file stack
     std::stack<std::string> file_stack;
+
+    // result tree structure
     NodeTree tree;
+
+    // current position in tree
     NodeTree::tree_t::iterator it;
 
+    // current private parameters
     std::vector<param_t> private_params;
 };
 

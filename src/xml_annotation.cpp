@@ -55,12 +55,13 @@ void xml_annotation(NodeTree& tree) {
 }
 
 template <typename T>
-bool is_equal(const T& a, const T& b,
+auto is_equal(const T& a, const T& b,
               std::function<bool(const typename T::value_type&, const typename T::value_type)> elt_eq
-                    = std::equal_to<typename T::value_type>()) {
+                    = std::equal_to<typename T::value_type>()) -> decltype(a.begin()) {
     //TODO: avoid doubled comparisons
 
-    for (const auto& a_elt : a) {
+    for (auto it = a.begin(); it != a.end(); ++it) {
+        const auto& a_elt = *it;
         bool found = false;
         for (const auto& b_elt : b) {
             if (elt_eq(a_elt, b_elt)) {
@@ -69,10 +70,11 @@ bool is_equal(const T& a, const T& b,
             }
         }
         if (!found)
-            return false;
+            return it;
     }
 
-    for (const auto& b_elt : b) {
+    for (auto it = b.begin(); it != b.end(); ++it) {
+        const auto& b_elt = *it;
         bool found = false;
         for (const auto& a_elt : a) {
             if (elt_eq(b_elt, a_elt)) {
@@ -81,32 +83,36 @@ bool is_equal(const T& a, const T& b,
             }
         }
         if (!found)
-            return false;
+            return it;
     }
 
-    return true;
+    return a.end();
 }
 
 bool diff_ports(const NodeTree& a, const NodeTree& b, std::ostream& output) {
-    bool mismatch = false;
+    bool ports_match = true;
+    bool nodes_found = true;
 
-    bool nodes_found = is_equal(a.nodes, b.nodes, [&](const NodeDesc& na, const NodeDesc& nb) {
+    auto nodes_diff = is_equal(a.nodes, b.nodes, [&](const NodeDesc& na, const NodeDesc& nb) {
         if (na.name != nb.name || na.path != nb.path)
             return false;
 
-        bool ports_equal = is_equal(na.ports, nb.ports);
+        auto ports_diff = is_equal(na.ports, nb.ports);
 
-        if (!ports_equal) {
+        if (ports_diff != na.ports.end()) {
             output << "Topic mismatch for node " << na.name << std::endl;
             output << na << std::endl << nb << std::endl;
+            output << "first offending port is " << ports_diff->name << std::endl;
+            ports_match = false;
         }
 
         return true;
     });
 
-    if (!nodes_found) {
-        output << "Mismatch due to missing node" << std::endl;
+    if (nodes_diff != a.nodes.end()) {
+        output << "Mismatch due to missing node " << nodes_diff->name << std::endl;
+        nodes_found = true;
     }
 
-    return nodes_found && !mismatch;
+    return nodes_found && ports_match;
 }

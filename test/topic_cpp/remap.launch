@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+
+<launch>
+    <remap from="/foo/bar/chatter" to="/chatter"/>
+    <remap from="/foo/chatter" to="/foo/bar/baz/chat"/>
+    <remap from="/foo/chatter3" to="/foo/bar/baz/chat3"/>
+    <group ns="foo">
+        <remap from="/chatter" to="/chat"/>
+        <remap from="chatter" to="/chat2"/>
+        <remap from="bar/chatter4" to="/chat4"/>
+        <group ns="bar">
+            <!-- topic_cpp -->
+            <node name="topic_cpp"
+                  pkg="ros_launch_lint"
+                  type="topic_cpp"
+                  required="true">
+
+                <remap from="chatter2" to="blabla"/>
+                <!--
+                <topics>
+                    <topic name="/chat2"
+                           type="std_msgs/String"
+                           class="pub"/>
+                    <topic name="/foo/bar/blabla"
+                           type="std_msgs/String"
+                           class="pub"/>
+                    <topic name="/foo/bar/chatter3"
+                           type="std_msgs/String"
+                           class="pub"/>
+                    <topic name="/foo/bar/chatter4"
+                           type="std_msgs/String"
+                           class="pub"/>
+                    <topic name="/foo/bar/chatter5"
+                           type="std_msgs/String"
+                           class="pub"/>
+                    <topic name="/foo/bar/chatter6"
+                           type="std_msgs/String"
+                           class="pub"/>
+                    <topic name="/chat2"
+                           type="std_msgs/String"
+                           class="sub"/>
+                    <topic name="/foo/bar/chatter3"
+                           type="std_msgs/String"
+                           class="sub"/>
+                    <topic name="/foo/bar/chatter4"
+                           type="std_msgs/String"
+                           class="sub"/>
+                </topics>
+                -->
+            </node>
+        </group>
+        <!-- topic_cpp -->
+        <node name="topic_cpp"
+              pkg="ros_launch_lint"
+              type="topic_cpp"
+              required="true">
+            <remap from="/foo/bar/chatter6" to="/bla/baz"/>
+            <remap from="/chat2" to="/chat1"/>
+            <!--
+            <topics>
+                <topic name="/chat2"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/chatter2"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/bar/baz/chat3"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/chatter4"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/chatter5"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/chatter6"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/chat2"
+                       type="std_msgs/String"
+                       class="sub"/>
+                <topic name="/foo/bar/baz/chat3"
+                       type="std_msgs/String"
+                       class="sub"/>
+                <topic name="/foo/chatter4"
+                       type="std_msgs/String"
+                       class="sub"/>
+            </topics>
+            -->
+        </node>
+    </group>
+
+    <remap from="/foo/bar/chatter5" to="/foo/bar/baz/chat5"/>
+</launch>

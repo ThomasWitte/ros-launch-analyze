@@ -1,21 +1,19 @@
 #include "ros_launch_lint/node_tree.h"
 
 NodeListVisitor::NodeListVisitor(const std::string& root_xml) {
-    nss.push("/");
+    nss.push(Namespace {"/"});
     file_stack.push(root_xml);
     tree.nodes.insert(tree.nodes.begin(), NodeDesc {"/", "", "", "", root_xml});
-    it = create_path(nss.top());
+    it = create_path(nss.top().name);
 }
 
 bool NodeListVisitor::VisitExit (const XMLElement &elt) {
     if (std::string(elt.Name()) == "group" ||
-        std::string(elt.Name()) == "node" ||
         std::string(elt.Name()) == "test" ||
         std::string(elt.Name()) == "include") {
-        if (elt.Attribute("ns")) {
-            nss.pop();
-            it = create_path(nss.top());
-        }
+
+        nss.pop();
+        it = create_path(nss.top().name);
     }
 
     if (std::string(elt.Name()) == "include") {
@@ -23,15 +21,33 @@ bool NodeListVisitor::VisitExit (const XMLElement &elt) {
     }
 
     if (std::string(elt.Name()) == "node") {
+
+        // save Namespace and all remaps for this node
+        auto current_nss = nss;
+        Namespace result_ns = current_nss.top();
+        current_nss.pop();
+
+        for (; !current_nss.empty(); current_nss.pop()) {
+            for (const auto& remap : current_nss.top().remaps)
+                result_ns.remaps.push_back(remap);
+        }
+
+        // remove node from namespace stack
+        nss.pop();
+        it = create_path(nss.top().name);
+
+        // create child node in NodeTree
         tree.nodes.append_child(it, NodeDesc {elt.Attribute("name"),
                                               get_absolute_path(it.node, it->name),
                                               elt.Attribute("type"),
                                               elt.Attribute("pkg"),
                                               file_stack.top(),
+                                              result_ns,
                                               private_params,
                                               elt.Attribute("args") ? elt.Attribute("args") : "",
                                               std::vector<Port>(),
                                               elt});
+        // reset private parameters
         private_params.clear();
     } else if (std::string(elt.Name()) == "param"
             && elt.Parent() && std::string(elt.Parent()->ToElement()->Name()) != "node") {
@@ -55,21 +71,33 @@ bool NodeListVisitor::VisitEnter (const XMLElement &elt, const XMLAttribute *) {
         }
     }
 
+    if (std::string(elt.Name()) == "remap") {
+        nss.top().remaps.emplace_back(std::make_pair(elt.Attribute("from"),
+                                                     elt.Attribute("to")));
+    }
+
     if (std::string(elt.Name()) == "group" ||
         std::string(elt.Name()) == "node" ||
         std::string(elt.Name()) == "test" ||
         std::string(elt.Name()) == "include") {
 
-        if (elt.Attribute("ns")) {
-            std::string ns = elt.Attribute("ns");
-            if (ns[0] != '/') {
-                ns = nss.top() + ns;
-            }
-            if (ns[ns.size()-1] != '/') {
-                ns = ns + '/';
-            }
+        std::string ns = nss.top().name;
 
-            nss.push(ns);
+        if (elt.Attribute("ns")) {
+            ns = elt.Attribute("ns");
+        }
+
+        if (ns[0] != '/') {
+            ns = nss.top().name + ns;
+        }
+
+        if (ns[ns.size()-1] != '/') {
+            ns = ns + '/';
+        }
+
+        nss.push(Namespace {ns});
+
+        if (elt.Attribute("ns")) {
             it = create_path(ns);
         }
     }
@@ -112,6 +140,25 @@ NodeTree::tree_t::iterator NodeListVisitor::create_path(const std::string& path)
     }
 
     return tree_it;
+}
+
+std::string resolve_remaps(const NodeDesc& node, std::string path) {
+
+    ROS_INFO_STREAM("Resolving remaps for " << path);
+
+    for (const auto& p : node.ns.remaps) {
+        if (path == p.first || path == (node.ns.name + p.first)) {
+            path = p.second;
+            ROS_INFO_STREAM("...remapped to " << path);
+            return path;
+        } else {
+            ROS_INFO_STREAM("remap " << p.first << " -> " << p.second << " does not match");
+        }
+    }
+
+    ROS_INFO_STREAM("...no remap found");
+
+    return path;
 }
 
 std::ostream& operator<< (std::ostream& out, const NodeDesc& desc) {
