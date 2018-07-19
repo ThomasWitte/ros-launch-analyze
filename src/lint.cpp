@@ -18,9 +18,11 @@ struct Options {
             if (s == "--print-dot")          print_dot = true;
             if (s == "--print-node-tree")    print_node_tree = true;
             if (s == "--print-topics")       print_topics = true;
+            if (s == "--print-xml")          print_xml = true;
             if (s == "--no-print-dot")       print_dot = false;
             if (s == "--no-print-node-tree") print_node_tree = false;
             if (s == "--no-print-topics")    print_topics = false;
+            if (s == "--no-print-xml")       print_xml = false;
 
             if (s == "--analyze-sandbox")    analyze_sandbox = true;
             if (s == "--no-analyze-sandbox") analyze_sandbox = false;
@@ -52,6 +54,7 @@ struct Options {
     bool print_dot = false;
     bool print_node_tree = true;
     bool print_topics = true;
+    bool print_xml = false;
 
     bool xml_annotation = true;
     bool analyze_sandbox = true;
@@ -105,6 +108,9 @@ int main(int argc, char* argv[]) {
 
     if (op.print_topics)
         print_topics(node_tree, op.output());
+
+    if (op.print_xml)
+        print_xml(node_tree, op.output());
 
     // compare feature to check differences between xml annotations
     // and sandboxed execution results

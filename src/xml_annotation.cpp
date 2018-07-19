@@ -6,7 +6,7 @@ std::vector<Port> parse_annotation(const XMLComment& elt, NodeTree::tree_t::tree
     // try to parse the comment as xml
     std::string comment = elt.Value();
     XMLDocument comment_doc;
-    if (comment_doc.Parse(comment.c_str(), comment.size()) == XML_NO_ERROR) {
+    if (comment_doc.Parse(comment.c_str(), comment.size()) == XML_SUCCESS) {
         const XMLNode* topic_node = comment_doc.FirstChild();
         if (!topic_node || !topic_node->ToElement() || (std::string(topic_node->ToElement()->Name()) != "topics" && std::string(topic_node->ToElement()->Name()) != "services")) {
             ROS_INFO("Invalid xml annotation structure");

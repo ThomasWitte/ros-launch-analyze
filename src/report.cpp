@@ -111,3 +111,103 @@ void print_dot(const NodeTree& tree, std::ostream& output) {
 
     output << "}" << std::endl;
 }
+
+void output_remaps(const NodeDesc& desc, XMLElement* node) {
+    for (const auto& remap : desc.ns.remaps) {
+        auto *remap_elt = node->GetDocument()->NewElement("remap");
+        remap_elt->SetAttribute("from", remap.first.c_str());
+        remap_elt->SetAttribute("to", remap.second.c_str());
+        node->InsertEndChild(remap_elt);
+    }
+}
+
+void output_private_params(const NodeDesc& desc, XMLElement* node) {
+    for (const auto& param : desc.params) {
+        auto *param_elt = node->GetDocument()->NewElement("param");
+        param_elt->SetAttribute("name", param.first.c_str());
+        param_elt->SetAttribute("value", param.second.c_str());
+        node->InsertEndChild(param_elt);
+    }
+}
+
+void output_global_params(const NodeTree& tree, XMLElement* node) {
+    for (const auto& param : tree.global_params) {
+        auto *param_elt = node->GetDocument()->NewElement("param");
+        param_elt->SetAttribute("name", param.first.c_str());
+        param_elt->SetAttribute("value", param.second.c_str());
+        node->InsertEndChild(param_elt);
+    }
+}
+
+void output_port_annotations(const NodeDesc& desc, XMLElement* node) {
+    XMLDocument comment_doc;
+    auto *topic_element = comment_doc.NewElement("topics");
+    auto *service_element = comment_doc.NewElement("services");
+
+    for (const Port& port : desc.ports) {
+        auto *port_elt = comment_doc.NewElement("topic");
+        port_elt->SetAttribute("name", port.name.c_str());
+        port_elt->SetAttribute("type", port.data_type.c_str());
+
+        switch (port.type) {
+        case Port::PUBLISHER:
+            port_elt->SetAttribute("class", "pub");
+            topic_element->InsertEndChild(port_elt);
+            break;
+        case Port::SUBSCRIBER:
+            port_elt->SetAttribute("class", "sub");
+            topic_element->InsertEndChild(port_elt);
+            break;
+        case Port::SERVICE_ADVERTISE:
+            port_elt->SetAttribute("class", "adv");
+            service_element->InsertEndChild(port_elt);
+            break;
+        case Port::SERVICE_CLIENT:
+            port_elt->SetAttribute("class", "call");
+            service_element->InsertEndChild(port_elt);
+            break;
+        default:
+            break;
+        }
+    }
+
+    comment_doc.InsertEndChild(topic_element);
+    comment_doc.InsertEndChild(service_element);
+
+    XMLPrinter comment_printer;
+    comment_doc.Print(&comment_printer);
+    node->InsertEndChild(node->GetDocument()->NewComment(comment_printer.CStr()));
+}
+
+void print_xml(const NodeTree& tree, std::ostream& output) {
+    XMLDocument doc;
+    XMLPrinter printer;
+
+    doc.InsertEndChild(doc.NewDeclaration("xml version=\"1.0\""));
+    auto* root = doc.NewElement("launch");
+    doc.InsertEndChild(root);
+
+    for (const NodeDesc& desc : tree.nodes) {
+        // skip groups etc
+        if (desc.type.empty())
+            continue;
+
+        auto *node = doc.NewElement("node");
+
+        node->SetAttribute("name", desc.name.c_str());
+        node->SetAttribute("ns", desc.path.c_str());
+        node->SetAttribute("pkg", desc.package.c_str());
+        node->SetAttribute("type", desc.type.c_str());
+
+        output_remaps(desc, node);
+        output_private_params(desc, node);
+        output_port_annotations(desc, node);
+
+        root->InsertEndChild(node);
+    }
+
+    output_global_params(tree, root);
+
+    doc.Print(&printer);
+    output << printer.CStr();
+}
