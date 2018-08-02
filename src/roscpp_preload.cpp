@@ -28,6 +28,7 @@ struct AnalysisClient {
     }
 
     ~AnalysisClient() {
+        client.pause_reading(hdl);
         client.close(hdl, websocketpp::close::status::normal, "shutdown client");
         asio_thread.join();
     }
@@ -49,9 +50,11 @@ struct AnalysisClient {
         });
         client.set_close_handler([&](websocketpp::connection_hdl){
             client.get_alog().write(websocketpp::log::alevel::app, "Connection closed!");
+            connection_open = false;
         });
         client.set_fail_handler([&](websocketpp::connection_hdl){
             client.get_alog().write(websocketpp::log::alevel::app, "Connection failed!");
+            connection_open = false;
         });
 
         // Create a new connection to the given URI
@@ -88,6 +91,7 @@ struct AnalysisClient {
 
     static std::unique_ptr<AnalysisClient> instance;
     static AnalysisClient* get_instance();
+    static void shutdown();
 };
 
 std::unique_ptr<AnalysisClient> AnalysisClient::instance;
@@ -96,6 +100,10 @@ AnalysisClient* AnalysisClient::get_instance() {
         instance = std::make_unique<AnalysisClient>();
 
     return instance.get();
+}
+
+void AnalysisClient::shutdown() {
+    //instance.reset(nullptr);
 }
 
 namespace ros {
@@ -193,6 +201,17 @@ void start() {
 
     AnalysisClient::get_instance()->log("<<advertiseService>> " + names::resolve("~get_loggers") + " roscpp/GetLoggers");
     AnalysisClient::get_instance()->log("<<advertiseService>> " + names::resolve("~set_logger_level") + " roscpp/SetLoggerLevel");
+}
+
+void shutdown() {
+    typedef void (*func_t)(void);
+
+    static func_t orig_shutdown = nullptr;
+    if (!orig_shutdown)
+        orig_shutdown = reinterpret_cast<func_t>(dlsym(RTLD_NEXT, "_ZN3ros8shutdownEv"));
+
+    orig_shutdown();
+    AnalysisClient::shutdown();
 }
 
 namespace service {

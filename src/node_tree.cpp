@@ -144,19 +144,19 @@ NodeTree::tree_t::iterator NodeListVisitor::create_path(const std::string& path)
 
 std::string resolve_remaps(const NodeDesc& node, std::string path) {
 
-    ROS_INFO_STREAM("Resolving remaps for " << path);
+    ROS_DEBUG_STREAM("Resolving remaps for " << path);
 
     for (const auto& p : node.ns.remaps) {
         if (path == p.first || path == (node.ns.name + p.first)) {
             path = p.second;
-            ROS_INFO_STREAM("...remapped to " << path);
+            ROS_DEBUG_STREAM("...remapped to " << path);
             return path;
         } else {
-            ROS_INFO_STREAM("remap " << p.first << " -> " << p.second << " does not match");
+            ROS_DEBUG_STREAM("remap " << p.first << " -> " << p.second << " does not match");
         }
     }
 
-    ROS_INFO_STREAM("...no remap found");
+    ROS_DEBUG_STREAM("...no remap found");
 
     return path;
 }

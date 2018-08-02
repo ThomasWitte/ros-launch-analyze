@@ -4,7 +4,7 @@
 #include <ros/package.h>
 #include <cstdlib>
 
-NodeAnalyzer::NodeAnalyzer() {
+NodeAnalyzer::NodeAnalyzer(AnalysisOptions opts) : opts {opts} {
     start_server();
 }
 
@@ -16,8 +16,12 @@ void NodeAnalyzer::start_server() {
     fut = std::async(std::launch::async, [&]{
         // set up access channels to only log interesting things
         server.clear_access_channels(websocketpp::log::alevel::all);
-        //server.set_access_channels(websocketpp::log::alevel::access_core);
-        //server.set_access_channels(websocketpp::log::alevel::app);
+        server.clear_error_channels(websocketpp::log::elevel::info);
+        if (opts.debug_connection) {
+            server.set_access_channels(websocketpp::log::alevel::access_core);
+            server.set_access_channels(websocketpp::log::alevel::app);
+            server.set_error_channels(websocketpp::log::elevel::info);
+        }
 
         // Initialize the Asio transport policy
         server.init_asio();
@@ -55,7 +59,7 @@ void NodeAnalyzer::start_server() {
 
         while (!exiting) {
             try {
-                ROS_INFO("listening...");
+                ROS_DEBUG("listening...");
 
                 // Listen on port 34005
                 server.listen(34005);
@@ -66,7 +70,8 @@ void NodeAnalyzer::start_server() {
                 // Start the ASIO io_service run loop
                 server.run();
             } catch(...) {
-                ROS_INFO("exception caught");
+                ROS_WARN("exception caught");
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
             }
         }
 
@@ -74,41 +79,34 @@ void NodeAnalyzer::start_server() {
 }
 
 void NodeAnalyzer::stop_server() {
-    ROS_INFO("stopping server");
+    ROS_DEBUG("stopping server");
     exiting = true;
     server.stop_listening();
 }
 
-std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::vector<param_t>& global_params, AnalysisOptions opts) {
+std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::vector<param_t>& global_params) {
 
-    // create process
-    procxx::process get_topics {"firejail",
-                                "--env=LD_LIBRARY_PATH=" + std::string(std::getenv("LD_LIBRARY_PATH")),
-                                "--overlay",
-                                "--quiet",
-                                ros::package::getPath("ros_launch_lint") + "/get_topics.sh"};
-
-    if (opts.debug_cmdline)
-        std::cout << "cmd: firejail --env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH --overlay --quiet "
-                  << ros::package::getPath("ros_launch_lint") << "/get_topics.sh";
+    std::vector<std::string> arguments;
+    if (opts.enable_sandbox) {
+        arguments.push_back("firejail");
+        arguments.push_back("--env=LD_LIBRARY_PATH=" + std::string(std::getenv("LD_LIBRARY_PATH")));
+        arguments.push_back("--overlay-tmpfs");
+        arguments.push_back("--quiet");
+        arguments.push_back("--noprofile");
+    }
+    arguments.push_back(ros::package::getPath("ros_launch_lint") + "/get_topics.sh");
 
     // add global parameters
     for (const auto param : global_params) {
-        get_topics.add_argument(param.first);
-        get_topics.add_argument(param.second);
-        if (opts.debug_cmdline)
-            std::cout << " " << param.first << " " << param.second;
+        arguments.push_back(param.first);
+        arguments.push_back(param.second);
     }
 
-    get_topics.add_argument("--");
-    if (opts.debug_cmdline)
-        std::cout << " --";
+    arguments.push_back("--");
 
     // package and node to start
-    get_topics.add_argument(node.package);
-    get_topics.add_argument(node.type);
-    if (opts.debug_cmdline)
-        std::cout << " " << node.package << " " << node.type;
+    arguments.push_back(node.package);
+    arguments.push_back(node.type);
 
     // split and add arguments
     if (!node.args.empty()) {
@@ -120,23 +118,28 @@ std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::ve
                 for (std::string s2; ss >> s2 && s2[s2.size()-1] != '\"'; s = s + " " + s2)
                     ;
             }
-            get_topics.add_argument(s);
-            if (opts.debug_cmdline)
-                std::cout << " " << s;
+            arguments.push_back(s);
         }
     }
 
     // add private parameters
-    get_topics.add_argument("__name:=" + node.name);
-    get_topics.add_argument("__ns:=" + node.path);
+    arguments.push_back("__name:=" + node.name);
+    arguments.push_back("__ns:=" + node.path);
     for (const auto param : node.params) {
-        get_topics.add_argument(std::string("_") + param.first + ":=" + param.second);
-        if (opts.debug_cmdline)
-            std::cout << " _" << param.first << ":=" << param.second;
+        arguments.push_back(std::string("_") + param.first + ":=" + param.second);
     }
 
-    if (opts.debug_cmdline)
-        std::cout << std::endl;
+    // create process
+    procxx::process get_topics {arguments.front()};
+    for (auto it = arguments.begin()+1; it != arguments.end(); it++)
+        get_topics.add_argument(*it);
+
+    if (opts.debug_cmdline) {
+        std::stringstream ss;
+        for (const auto& arg : arguments)
+            ss << arg << " ";
+        ROS_DEBUG_STREAM("cmd: " << ss.str());
+    }
 
     // clear port data
     received_ports.clear();
@@ -147,7 +150,7 @@ std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::ve
     if (opts.debug_output) {
         std::string line;
         while (std::getline(get_topics.error(), line))
-            std::cout << line << std::endl;
+            ROS_DEBUG_STREAM(line);
     }
 
     // wait for analysis script to finish
@@ -156,8 +159,9 @@ std::vector<Port> NodeAnalyzer::analyze_node(const NodeDesc& node, const std::ve
     return received_ports;
 }
 
-void sandboxed_execution(NodeTree& node_tree) {
-    NodeAnalyzer na;
+void sandboxed_execution(NodeTree& node_tree, bool debug = false) {
+    AnalysisOptions opts {debug, debug, debug, true};
+    NodeAnalyzer na {opts};
 
     for (auto it = node_tree.nodes.begin(); it != node_tree.nodes.end(); ++it) {
         // continue, if not a node
@@ -174,6 +178,6 @@ void sandboxed_execution(NodeTree& node_tree) {
         it->ports = ports;
 
         ROS_INFO_STREAM("...found " << it->ports.size() << " topics/services");
-        ROS_INFO_STREAM(*it);
+        ROS_DEBUG_STREAM(*it);
     }
 }

@@ -73,13 +73,14 @@ function path {
 echo "LD_LIBRARY_PATH=" $LD_LIBRARY_PATH 1>&2
 
 # execute the node and print topics
-ROSCPP_PRELOAD=$(locate libroscpp_preload.so)
-(timeout -s 'TERM' 7 roscore &> /dev/null )&
+ROSCPP_PRELOAD=$(find `rospack libs-only-L ros_launch_lint` -name libroscpp_preload.so)
+#ROSCPP_PRELOAD=/home/thomas/catkin_ws/devel/lib/libroscpp_preload.so
+(timeout -s 'INT' 7 roscore &> /dev/null )&
 
 sleep 3
 
 # publish on the clock topic to avoid blocking nodes if use_sim_time is true
-(timeout -s 'TERM' 4 rostopic pub -r 10 /clock rosgraph_msgs/Clock 5 )&
+(timeout -s 'INT' 4 rostopic pub -r 10 /clock rosgraph_msgs/Clock 5 )&
 
 # set global ros parameters
 while [ "$1" != "--" ]; do
@@ -104,7 +105,7 @@ then
         i="${i//\\/\\\\}"
         C="$C \"${i//\"/\\\"}\""
     done
-    timeout 3 bash -c "rosrun ros_launch_lint rospy_preload.py $exepath $C"
+    timeout -s 'INT' 3 bash -c "rosrun ros_launch_lint rospy_preload.py $exepath $C"
 else
     # otherwise, preload the roscpp_preload.so library and use standard rosrun
     C=''
@@ -112,5 +113,5 @@ else
         i="${i//\\/\\\\}"
         C="$C \"${i//\"/\\\"}\""
     done
-    timeout 3 bash -c "LD_PRELOAD=$ROSCPP_PRELOAD rosrun $C"
+    timeout -s 'INT' 3 bash -c "LD_PRELOAD=$ROSCPP_PRELOAD rosrun $C"
 fi

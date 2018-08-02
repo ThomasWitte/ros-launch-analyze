@@ -14,23 +14,27 @@
 
 struct AnalysisOptions {
     bool debug_cmdline = false;
-    bool debug_output = true;
+    bool debug_output = false;
+    bool debug_connection = false;
+
+    bool enable_sandbox = true;
 };
 
 class NodeAnalyzer {
     using server_t = websocketpp::server<websocketpp::config::asio>;
 
 public:
-    NodeAnalyzer();
+    NodeAnalyzer(AnalysisOptions opts = AnalysisOptions());
     ~NodeAnalyzer();
 
     std::vector<Port> analyze_node(const NodeDesc& node,
-                                   const std::vector<param_t>& global_params,
-                                   AnalysisOptions opts = AnalysisOptions());
+                                   const std::vector<param_t>& global_params);
 
 private:
     void start_server();
     void stop_server();
+
+    AnalysisOptions opts;
 
     std::vector<Port> received_ports;
 
@@ -39,6 +43,6 @@ private:
     bool exiting = false;
 };
 
-void sandboxed_execution(NodeTree& node_tree);
+void sandboxed_execution(NodeTree& node_tree, bool debug);
 
 #endif // SANDBOXED_EXECUTION_H
