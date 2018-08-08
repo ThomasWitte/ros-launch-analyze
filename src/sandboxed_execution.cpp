@@ -51,7 +51,10 @@ void NodeAnalyzer::start_server() {
                     p.type = Port::SERVICE_CLIENT;
                 else
                     p.type = Port::NONE;
-                received_ports.push_back(p);
+
+                // ignore duplicates
+                if (std::find(received_ports.begin(), received_ports.end(), p) == received_ports.end())
+                    received_ports.push_back(p);
             } else {
                 ROS_WARN_STREAM("received invalid data from analyzed node: " << msg_ptr->get_payload());
             }
