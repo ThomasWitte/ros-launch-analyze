@@ -11,6 +11,13 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
 
+    // remapping chatter2 via command line
+    std::string topic = "chatter" + std::to_string(2);
+    for (int i = 0; i < argc-1; ++i)
+        if ("--remap-chatter2"s == argv[i])
+            topic = argv[i+1];
+            
+
     // Basic publisher and subscriber
     ros::Publisher pub = n.advertise<std_msgs::String>("chatter", 20);
     ros::Subscriber sub = n.subscribe<std_msgs::String>("chatter", 20, [&argc](auto msg) {
@@ -18,7 +25,6 @@ int main(int argc, char **argv)
     });
     
     // Publisher with topic name calculated at runtime
-    std::string topic = "chatter" + std::to_string(2);
     ros::Publisher pub2 = n.advertise<std_msgs::String>(topic, 20);
 
     // latched publisher
