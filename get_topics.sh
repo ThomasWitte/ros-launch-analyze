@@ -93,7 +93,7 @@ shift
 # get executable name for node
 path $1 $2
 
-if [ -n "`file -b "$exepath" | grep Python`" ]
+if [ -n "`file -L -b "$exepath" | grep Python`" ]
 then
     # if the node is using python, use rospy_preload.py
 
