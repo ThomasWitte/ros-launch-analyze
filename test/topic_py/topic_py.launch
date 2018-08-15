@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+
+<launch>
+    <remap from="/foo/bar/chatter" to="/chatter"/>
+    <group ns="foo">
+        <group ns="bar">
+            <!-- topic_py -->
+            <node name="topic_py"
+                  pkg="ros_launch_lint"
+                  type="topic_py"
+                  required="true">
+
+                <remap from="chatter2" to="blabla"/>
+                <!--
+                <topics>
+                    <topic name="/chatter"
+                           type="std_msgs/String"
+                           class="pub"/>
+                    <topic name="/foo/bar/blabla"
+                           type="std_msgs/String"
+                           class="pub"/>
+                    <topic name="/foo/bar/blabla"
+                           type="std_msgs/String"
+                           class="sub"/>
+                </topics>
+                -->
+            </node>
+        </group>
+        <!-- topic_py -->
+        <node name="topic_py"
+              pkg="ros_launch_lint"
+              type="topic_py"
+              required="true"
+              args="chatter:=/blabla --chatter2 chatter3">
+            <!--
+            <topics>
+                <topic name="/blabla"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/chatter3"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/chatter2"
+                       type="std_msgs/String"
+                       class="sub"/>
+            </topics>
+            -->
+        </node>
+    </group>
+</launch>
