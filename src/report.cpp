@@ -82,10 +82,10 @@ void print_dot(const NodeTree& tree, std::ostream& output) {
 
         ++i;
 
-        std::string name = it->name;
-        for (auto node = it.node->parent; node != nullptr; node = node->parent) {
-            name = node->data.name + name;
-        }
+        std::string name = it->path + it->name;
+//        for (auto node = it.node->parent; node != nullptr; node = node->parent) {
+//            name = node->data.name + name;
+//        }
 
         output << "node" << i << "[label=\"" << name << "\"; shape=box];" << std::endl;
 

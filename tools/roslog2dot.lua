@@ -3,17 +3,19 @@ function output_dot(nodes)
     for i, node in ipairs(nodes) do
         io.stdout:write('node', i, '[label="', node.name, '"; shape=box];\n')
         
-        io.stdout:write('node', i, ' -> {')
+                io.stdout:write('node', i, ' -> {')
         for idx, pub in ipairs(node.pub) do
             io.stdout:write( idx == 1 and "" or "," ,'"', pub.topic, '"')
         end
         io.stdout:write('};\n')
         
-        io.stdout:write('node', i, ' -> {')
-        for idx, adv in ipairs(node.adv) do
-            io.stdout:write( idx == 1 and "" or "," ,'"', adv.topic, '"')
+        if #node.adv > 0 then
+            io.stdout:write('node', i, ' -> {')
+            for idx, adv in ipairs(node.adv) do
+                io.stdout:write( idx == 1 and "" or "," ,'"', adv.topic, '"')
+            end
+            io.stdout:write('[shape=octagon]};\n')
         end
-        io.stdout:write('[shape=octagon]};\n')
         
         for _, sub in ipairs(node.sub) do
             io.stdout:write('"', sub.topic, '" -> node', i, ';\n')

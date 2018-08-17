@@ -21,7 +21,7 @@ dot -Tps "$logfile.dot" > "$logfile.ps"
 
 logfile2="$olddir/hector_quadrotor_reference_$(basename $launchfile .launch)"
 rm "$logfile2.log" "$logfile2.ps"
-(timeout 25 roslaunch $launchfile)&
+(timeout 35 roslaunch $launchfile)&
 sleep 5
 for n in `rosnode list` ; do
     rosnode info $n >> $logfile2.log
