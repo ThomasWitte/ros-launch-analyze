@@ -14,6 +14,10 @@ bool SubstitutionVisitor::VisitEnter (const XMLElement& elt, const XMLAttribute 
         const_cast<XMLAttribute*>(att)->SetAttribute(resolve_roslaunch_substitutions(att->Value()).c_str());
     }
 
+    // I hope this does not crash…
+    if (std::string(elt.Name()) == "rosparam" && elt.Attribute("subst_value", "true"))
+        const_cast<XMLElement*>(&elt)->SetText(resolve_roslaunch_substitutions(elt.Value()).c_str());
+
     if (std::string(elt.Name()) == "arg") {
         // check if this arg tag is inside an include tag
         if (std::string(elt.Parent()->ToElement()->Name()) != "include") {

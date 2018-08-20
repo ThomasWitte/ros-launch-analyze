@@ -1,6 +1,7 @@
 #ifndef NODE_TREE_H
 #define NODE_TREE_H
 
+#include <yaml-cpp/yaml.h>
 #include "ros_launch_lint/tree.h"
 #include <procxx/include/process.h>
 
@@ -91,6 +92,8 @@ public:
     }
 
 private:
+    void handle_rosparam(const XMLElement& elt, std::string param_prefix = "");
+
     // namespace stack
     std::stack<Namespace> nss;
 

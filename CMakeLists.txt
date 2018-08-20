@@ -158,6 +158,7 @@ add_dependencies(${PROJECT_NAME}_topic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${cat
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   tinyxml2
+  yaml-cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_topic

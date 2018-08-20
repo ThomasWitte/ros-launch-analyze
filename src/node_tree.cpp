@@ -63,12 +63,78 @@ bool NodeListVisitor::VisitExit (const XMLElement &elt) {
     return true;
 }
 
+void NodeListVisitor::handle_rosparam(const XMLElement& elt, std::string param_prefix) {
+    std::string command = "load";
+    if (auto att = elt.Attribute("command"); att != nullptr) {
+        command = att;
+    }
+
+    std::string ns = param_prefix;
+    if (auto att = elt.Attribute("ns"); att != nullptr) {
+        ns = att;
+    }
+
+    std::string param = "";
+    if (auto att = elt.Attribute("param"); att != nullptr) {
+        param = ns + att;
+    }
+
+    if (command == "load") {
+        YAML::Node yaml;
+
+        std::string file = elt.Attribute("file");
+
+        //load file or text
+        if (!file.empty()) {
+            yaml = YAML::LoadFile(file);
+        } else {
+            file = "[inline yaml]";
+            yaml = YAML::Load(elt.Value());
+        }
+
+        switch (yaml.Type()) {
+        case YAML::NodeType::Map:
+            for (const auto& p : yaml) {
+                auto k = ns + p.first.as<std::string>();
+                auto v = p.second.as<std::string>();
+                // replace param if it exists
+                if (auto pos = std::find_if(private_params.begin(), private_params.end(), [&](const auto& p){return k == p.first;}); pos != private_params.end()) {
+                    *pos = std::make_pair(k,v);
+                } else {
+                    private_params.push_back(std::make_pair(k, v));
+                }
+            }
+            break;
+        case YAML::NodeType::Scalar:
+        case YAML::NodeType::Sequence:
+                if (auto pos = std::find_if(private_params.begin(), private_params.end(), [&](const auto& p){return param == p.first;}); pos != private_params.end()) {
+                    *pos = std::make_pair(param, yaml.as<std::string>());
+                } else {
+                    private_params.push_back(std::make_pair(param, yaml.as<std::string>()));
+                }
+            break;
+        default:
+            ROS_WARN_STREAM("Problem loading paramter file " << file << "! " << yaml.as<std::string>());
+        }
+    } else if (command == "delete") {
+        private_params.erase(std::remove_if(private_params.begin(), private_params.end(), [&param](const auto& p) {
+            return param == p.first;
+        }), private_params.end());
+    } else if (command == "dump") {
+        //ignored
+    }
+}
+
 bool NodeListVisitor::VisitEnter (const XMLElement &elt, const XMLAttribute *) {
     if (std::string(elt.Name()) == "param") {
         if (elt.Attribute("name") && elt.Attribute("value")) {
             private_params.push_back(std::make_pair(elt.Attribute("name"),
                                                     elt.Attribute("value")));
         }
+    }
+
+    if (std::string(elt.Name()) == "rosparam") {
+        handle_rosparam(elt);
     }
 
     if (std::string(elt.Name()) == "remap") {
