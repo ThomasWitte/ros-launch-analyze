@@ -177,7 +177,11 @@ set_target_properties(${PROJECT_NAME}_test_topic_cpp PROPERTIES OUTPUT_NAME topi
 add_dependencies(${PROJECT_NAME}_test_topic_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_test_topic_cpp ${catkin_LIBRARIES})
 
-catkin_install_python(PROGRAMS test/topic_py/topic_py.py test/topic_py/topic_py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+catkin_install_python(PROGRAMS
+    test/topic_py/topic_py.py
+    test/topic_py/topic_py
+    test/rosparam/rosparam.py
+    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############
 ## Install ##

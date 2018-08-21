@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<launch>
+    <group ns="foo">
+        <rosparam>
+            param1: /bla
+        </rosparam>
+    
+        <!-- rosparam -->
+        <node name="rosparam"
+              pkg="ros_launch_lint"
+              type="rosparam.py"
+              required="true">
+            <!--
+            <topics>
+                <topic name="/bla"
+                       type="std_msgs/String"
+                       class="pub"/>
+            </topics>
+            -->
+        </node>
+    </group>
+</launch>

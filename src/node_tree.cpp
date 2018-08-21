@@ -49,7 +49,7 @@ bool NodeListVisitor::VisitExit (const XMLElement &elt) {
                                               elt});
         // reset private parameters
         private_params.clear();
-    } else if (std::string(elt.Name()) == "param"
+    } else if ((std::string(elt.Name()) == "param" || std::string(elt.Name()) == "rosparam")
             && elt.Parent() && std::string(elt.Parent()->ToElement()->Name()) != "node") {
 
         // we are not inside a node -> the param is global
@@ -64,6 +64,8 @@ bool NodeListVisitor::VisitExit (const XMLElement &elt) {
 }
 
 void NodeListVisitor::handle_rosparam(const XMLElement& elt, std::string param_prefix) {
+    //TODO: params can be remapped!
+
     std::string command = "load";
     if (auto att = elt.Attribute("command"); att != nullptr) {
         command = att;
@@ -82,15 +84,17 @@ void NodeListVisitor::handle_rosparam(const XMLElement& elt, std::string param_p
     if (command == "load") {
         YAML::Node yaml;
 
-        std::string file = elt.Attribute("file");
+        std::string file = elt.Attribute("file") ? elt.Attribute("file") : "";
 
         //load file or text
         if (!file.empty()) {
             yaml = YAML::LoadFile(file);
         } else {
             file = "[inline yaml]";
-            yaml = YAML::Load(elt.Value());
+            yaml = YAML::Load(elt.FirstChild()->ToText()->Value());
         }
+
+        ROS_DEBUG_STREAM("loaded rosparam " << file << " -> " << yaml);
 
         switch (yaml.Type()) {
         case YAML::NodeType::Map:
@@ -100,8 +104,10 @@ void NodeListVisitor::handle_rosparam(const XMLElement& elt, std::string param_p
                 // replace param if it exists
                 if (auto pos = std::find_if(private_params.begin(), private_params.end(), [&](const auto& p){return k == p.first;}); pos != private_params.end()) {
                     *pos = std::make_pair(k,v);
+                    ROS_DEBUG_STREAM("replace parameter: " << k << " : " << v);
                 } else {
                     private_params.push_back(std::make_pair(k, v));
+                    ROS_DEBUG_STREAM("set parameter: " << k << " : " << v);
                 }
             }
             break;
@@ -109,8 +115,10 @@ void NodeListVisitor::handle_rosparam(const XMLElement& elt, std::string param_p
         case YAML::NodeType::Sequence:
                 if (auto pos = std::find_if(private_params.begin(), private_params.end(), [&](const auto& p){return param == p.first;}); pos != private_params.end()) {
                     *pos = std::make_pair(param, yaml.as<std::string>());
+                    ROS_DEBUG_STREAM("replace parameter: " << param << " : " << yaml.as<std::string>());
                 } else {
                     private_params.push_back(std::make_pair(param, yaml.as<std::string>()));
+                    ROS_DEBUG_STREAM("set parameter: " << param << " : " << yaml.as<std::string>());
                 }
             break;
         default:
