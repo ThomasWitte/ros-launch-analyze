@@ -8,14 +8,6 @@ NodeListVisitor::NodeListVisitor(const std::string& root_xml) {
 }
 
 bool NodeListVisitor::VisitExit (const XMLElement &elt) {
-    if (std::string(elt.Name()) == "group" ||
-        std::string(elt.Name()) == "test" ||
-        std::string(elt.Name()) == "include") {
-
-        nss.pop();
-        it = create_path(nss.top().name);
-    }
-
     if (std::string(elt.Name()) == "include") {
         file_stack.pop();
     }
@@ -54,10 +46,20 @@ bool NodeListVisitor::VisitExit (const XMLElement &elt) {
 
         // we are not inside a node -> the param is global
         for (auto& p : private_params) {
-            p.first = get_absolute_path(it.node, it->name + p.first);
+            if (p.first[0] != '/')
+                p.first = get_absolute_path(it.node, it->name + p.first);
             tree.global_params.push_back(p);
         }
         private_params.clear();
+    }
+
+    if (std::string(elt.Name()) == "group" ||
+        std::string(elt.Name()) == "test" ||
+        std::string(elt.Name()) == "include" ||
+        std::string(elt.Name()) == "rosparam") {
+
+        nss.pop();
+        it = create_path(nss.top().name);
     }
 
     return true;
@@ -71,14 +73,9 @@ void NodeListVisitor::handle_rosparam(const XMLElement& elt, std::string param_p
         command = att;
     }
 
-    std::string ns = param_prefix;
-    if (auto att = elt.Attribute("ns"); att != nullptr) {
-        ns = att;
-    }
-
     std::string param = "";
     if (auto att = elt.Attribute("param"); att != nullptr) {
-        param = ns + att;
+        param = param_prefix + att;
     }
 
     if (command == "load") {
@@ -99,8 +96,10 @@ void NodeListVisitor::handle_rosparam(const XMLElement& elt, std::string param_p
         switch (yaml.Type()) {
         case YAML::NodeType::Map:
             for (const auto& p : yaml) {
-                auto k = ns + p.first.as<std::string>();
-                auto v = p.second.as<std::string>();
+                auto k = p.first.as<std::string>();
+                std::stringstream ss;
+                ss << p.second;
+                auto v = ss.str();
                 // replace param if it exists
                 if (auto pos = std::find_if(private_params.begin(), private_params.end(), [&](const auto& p){return k == p.first;}); pos != private_params.end()) {
                     *pos = std::make_pair(k,v);
@@ -111,25 +110,30 @@ void NodeListVisitor::handle_rosparam(const XMLElement& elt, std::string param_p
                 }
             }
             break;
+
         case YAML::NodeType::Scalar:
         case YAML::NodeType::Sequence:
+        {
+                std::stringstream ss;
+                ss << yaml;
+
                 if (auto pos = std::find_if(private_params.begin(), private_params.end(), [&](const auto& p){return param == p.first;}); pos != private_params.end()) {
-                    *pos = std::make_pair(param, yaml.as<std::string>());
-                    ROS_DEBUG_STREAM("replace parameter: " << param << " : " << yaml.as<std::string>());
+                    *pos = std::make_pair(param, ss.str());
+                    ROS_DEBUG_STREAM("replace parameter: " << param << " : " << yaml);
                 } else {
-                    private_params.push_back(std::make_pair(param, yaml.as<std::string>()));
-                    ROS_DEBUG_STREAM("set parameter: " << param << " : " << yaml.as<std::string>());
+                    private_params.push_back(std::make_pair(param, ss.str()));
+                    ROS_DEBUG_STREAM("set parameter: " << param << " : " << yaml);
                 }
             break;
+        }
+
         default:
-            ROS_WARN_STREAM("Problem loading paramter file " << file << "! " << yaml.as<std::string>());
+            ROS_WARN_STREAM("Problem loading paramter file " << file << "! " << yaml);
         }
     } else if (command == "delete") {
-        private_params.erase(std::remove_if(private_params.begin(), private_params.end(), [&param](const auto& p) {
-            return param == p.first;
-        }), private_params.end());
+        // ignored, as I don't understand how this is supposed to work
     } else if (command == "dump") {
-        //ignored
+        // ignored
     }
 }
 
@@ -153,6 +157,7 @@ bool NodeListVisitor::VisitEnter (const XMLElement &elt, const XMLAttribute *) {
     if (std::string(elt.Name()) == "group" ||
         std::string(elt.Name()) == "node" ||
         std::string(elt.Name()) == "test" ||
+        std::string(elt.Name()) == "rosparam" ||
         std::string(elt.Name()) == "include") {
 
         std::string ns = nss.top().name;

@@ -1,19 +1,69 @@
 <?xml version="1.0"?>
 
 <launch>
+    <arg name="parg" default="soso"/>
+    
+    <rosparam ns="/foo">
+        param7: hallo
+    </rosparam>
+
+    <rosparam param="foo/param8">
+        welt
+    </rosparam>
+
     <group ns="foo">
         <rosparam>
             param1: /bla
+            param9: /bla
+            param5: foo
+            param2: ~bar
         </rosparam>
+
+        <rosparam command="load" file="$(find ros_launch_lint)/test/rosparam/rosparam_map.yaml"/>
+
+        <rosparam command="delete" param="param3" />
     
         <!-- rosparam -->
-        <node name="rosparam"
+        <node name="rosparam1"
               pkg="ros_launch_lint"
               type="rosparam.py"
               required="true">
+              
+            <rosparam param="private_param1" subst_value="True">$(arg parg)</rosparam>
+
             <!--
             <topics>
                 <topic name="/bla"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/blabla"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/eins"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/foo"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/hallo"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/jkjkjk"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/rosparam1/bar"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/rosparam1/drei"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/soso"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/foo/welt"
+                       type="std_msgs/String"
+                       class="pub"/>
+                <topic name="/zwei"
                        type="std_msgs/String"
                        class="pub"/>
             </topics>

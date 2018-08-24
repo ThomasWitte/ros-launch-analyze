@@ -1,0 +1,5 @@
+param3: /blabla
+param1: jkjkjk
+test: 123.77
+test2: [1, 2, 3, 4]
+/param_list: ["eins", "/zwei", "~drei"]

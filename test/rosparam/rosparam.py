@@ -19,7 +19,7 @@ def topic_py():
 
     if rospy.has_param('/param_list'):
         for param in rospy.get_param('/param_list'):
-            rospy.Publisher(paramm, String, queue_size=10)
+            rospy.Publisher(param, String, queue_size=10)
 
     rate = rospy.Rate(10) # 10hz
     while not rospy.is_shutdown():

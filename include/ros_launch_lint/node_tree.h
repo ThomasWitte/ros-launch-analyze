@@ -69,7 +69,10 @@ struct NodeTree {
 template <typename T>
 std::string get_absolute_path(T* node, std::string path) {
     while (path.empty() || path[0] != '/') {
+        ROS_DEBUG_STREAM("Path: " << path << " Node: " << node->data.name);
         node = node->parent;
+        if (!node)
+            break;
         path = node->data.name + path;
     }
     return path;
